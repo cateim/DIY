@@ -4,3 +4,4 @@ sign.key
 .git
 docs/superpowers/*
 actual_import/*
+graphify-out/
