@@ -37,7 +37,7 @@ Ferramenta CLI + skill para agentes de IA que transforma qualquer codebase (cód
 
 - **Python 3.10+** instalado e no PATH.
 - **Um agente compatível:** Claude Code, Cursor, Codex ou Gemini CLI.
-- **(Opcional) Obsidian** para abrir o vault gerado como wiki visual.
+- **Obsidian (opcional, mas recomendado):** para visualizar a codebase interativamente em formato de grafo de conhecimento e notas conectadas.
 
 > ⚠️ **Windows:** se o comando `graphify` não for reconhecido após a instalação, adicione a pasta de Scripts do Python ao PATH: `%APPDATA%\Python\Python3xx\Scripts` (substitua `3xx` pela sua versão, ex: `313`). Ou use `pipx install graphifyy` que gerencia o PATH automaticamente.
 
@@ -47,7 +47,7 @@ Ferramenta CLI + skill para agentes de IA que transforma qualquer codebase (cód
 
 ## 📦 Parte 2: Instalação
 
-### 2.1. Instalar o pacote
+### 2.1. Instalar o Graphify
 
 ```bash
 pip install graphifyy && graphify install
@@ -55,7 +55,7 @@ pip install graphifyy && graphify install
 
 > ℹ️ O pacote no PyPI se chama `graphifyy` (com dois "y") temporariamente enquanto o nome `graphify` está sendo reivindicado. A CLI e o comando de skill continuam sendo `graphify`.
 
-### 2.2. Instalação manual (alternativa via curl)
+### 2.2. Instalação manual da Skill (alternativa via curl)
 
 Se preferir instalar apenas a skill sem o pacote Python:
 
@@ -72,7 +72,26 @@ Adicione ao `~/.claude/CLAUDE.md`:
   When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` before doing anything else.
 ```
 
-### 2.3. Verificar a instalação
+### 2.3. Instalar o Obsidian
+
+Se ainda não tem o Obsidian instalado na sua máquina:
+
+- **Windows (Terminal / PowerShell):**
+  ```powershell
+  winget install Obsidian.Obsidian
+  ```
+  *Ou baixe o instalador `.exe` em [obsidian.md/download](https://obsidian.md/download).*
+- **macOS:**
+  ```bash
+  brew install --cask obsidian
+  ```
+- **Linux:**
+  ```bash
+  flatpak install flathub md.obsidian.Obsidian
+  # ou baixe o AppImage / .deb em https://obsidian.md/download
+  ```
+
+### 2.4. Verificar a instalação
 
 ```bash
 graphify --version
@@ -89,7 +108,10 @@ Dentro do agente (Claude Code, Cursor, etc.), digite:
 ```
 /graphify                          # roda no diretório atual
 /graphify ./src                    # roda em uma pasta específica
-/graphify ./raw --mode deep        # extração mais agressiva de arestas INFERRED
+/graphify . --obsidian             # gera o vault formatado para o Obsidian
+/graphify . --wiki                 # gera artigos navegáveis em estilo Wikipedia
+/graphify . --mode deep            # extração mais agressiva de arestas INFERRED e hiperarestas
+/graphify . --wiki --obsidian --mode deep # gera visualização completa, wiki e vault juntos
 /graphify ./raw --update           # re-extrai apenas arquivos alterados, merge no grafo existente
 ```
 
@@ -123,6 +145,31 @@ Todos os artefatos ficam na pasta `graphify-out/` do projeto:
 ### 3.5. Multimodal
 
 O Graphify é **totalmente multimodal**: aceita código, PDFs, Markdown, screenshots, diagramas, fotos de quadro branco e até imagens em outros idiomas. Ele usa Claude Vision para extrair conceitos e conectá-los no grafo.
+
+### 3.6. 💎 Navegação e Visualização com o Obsidian
+
+O Vault do Obsidian permite explorar visualmente como a sua codebase está estruturada e interligada:
+
+> [!WARNING]
+> A pasta `graphify-out/obsidian/` é **auto-gerada** pelo Graphify. Trate as notas como leitura (read-only), pois re-execuções do Graphify atualizam os arquivos automaticamente.
+
+#### Como abrir o Vault:
+1. Abra o **Obsidian**.
+2. Na tela de início (ou no menu inferior esquerdo > *Open another vault*), selecione **"Open folder as vault"** (Abrir pasta como cofre).
+3. Selecione a pasta `graphify-out/obsidian/` localizada na raiz do seu projeto.
+4. O Obsidian carregará instantaneamente todos os nós, domínios e relacionamentos como notas interconectadas.
+
+#### Explorando o Graph View (Grafo Interativo):
+1. Pressione **`Ctrl + G`** (ou `Cmd + G` no Mac) para abrir o **Graph View**.
+2. Clique no ícone de **engrenagem** no canto superior do grafo para configurar:
+   - **Filters:** Filtre por nós ou domínios específicos (ex: `domain:Finance`, `path:components`).
+   - **Groups:** Defina cores customizadas para cada pasta ou comunidade arquitetural identificada.
+   - **Forces:** Regule a força de repulsão e atração para expandir ou condensar os agrupamentos.
+
+#### Navegando pelas Notas:
+- **Busca rápida:** Pressione **`Ctrl + O`** para pesquisar qualquer função, classe, módulo ou conceito pelo nome.
+- **Backlinks e Conexões:** Cada nota contém links internos (`[[Outro_Arquivo]]`). Use o painel lateral direito para visualizar todos os backlinks.
+- **Tags de Comunidade:** Clique nas tags (`#cluster-...`) para listar todos os componentes que pertencem ao mesmo domínio de arquitetura.
 
 ---
 
@@ -171,6 +218,7 @@ O cache usa SHA256 dos arquivos. Se o conteúdo não mudou, o arquivo é pulado.
 | :----------------- | :------------------------------------------------------------------ |
 | **PyPI**           | [`graphifyy`](https://pypi.org/project/graphifyy/)                  |
 | **GitHub**         | [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify) |
+| **Obsidian**       | [obsidian.md](https://obsidian.md/)                                 |
 | **Outputs locais** | `./graphify-out/` (relativo ao projeto)                             |
 
 ---
@@ -181,3 +229,4 @@ O cache usa SHA256 dos arquivos. Se o conteúdo não mudou, o arquivo é pulado.
 - [PyPI — graphifyy](https://pypi.org/project/graphifyy/)
 - [tree-sitter (parsing AST)](https://tree-sitter.github.io/tree-sitter/)
 - [Obsidian (vault viewer)](https://obsidian.md/)
+

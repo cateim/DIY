@@ -14,12 +14,11 @@ A stack pronta está em [`assets/stacks/caddy.yml`](../assets/stacks/caddy.yml) 
 
 ```
 Cloudflare (TLS) → Cloudflare Tunnel → cloudflared (host) → http://localhost:8080
-                                                                     │  (Caddy)
-        rede auth-net ──► authelia:9091 (forward-auth)  ◄────────────┤
-        rede auth-net ──► lldap:17170 (UI de usuários)  ◄────────────┤
-        rede caddy-net     ──► bentopdf:8080 (e outros apps) ◄────────────┘
+                                                                      │  (Caddy)
+        rede auth-net  ──► authelia:9091 (forward-auth)  ◄────────────┤
+        rede auth-net  ──► lldap:17170 (UI de usuários)  ◄────────────┤
+        rede caddy-net ──► bentopdf:8080 (e outros apps) ◄────────────┘
 ```
-
 
 Só o Caddy publica porta no host (presa em `127.0.0.1:8080`). Ele cruza **duas redes**: `caddy-net` (apps) e `auth-net` (Authelia/lldap). Os apps ficam só na `caddy-net`, sem porta no host.
 
@@ -117,6 +116,110 @@ O Caddy separa por Host header. O Cloudflare força HTTPS na borda, então o `X-
 
 - **Imagem do Caddy:** Portainer → stack `caddy` → **Re-pull image and redeploy**.
 - **Só o Caddyfile mudou:** `docker restart caddy` (relê o Caddyfile em ~2s). O `caddy reload` falha por causa do `admin off` (sem API na `:2019`).
+
+## Parte 6: Compressão (uma linha que vale mais que otimizar o app)
+
+O Caddy **não comprime nada por padrão**. Sem a diretiva `encode`, todo HTML, CSS,
+JS e JSON sai com o tamanho bruto, mesmo o navegador anunciando
+`Accept-Encoding: gzip, br, zstd`.
+
+Medido num app real (frontend do ALFERES, já minificado pelo esbuild):
+
+| Situação     | Trafegado |
+| :----------- | :-------- |
+| Sem `encode` | 59 KB     |
+| `gzip`       | 17 KB     |
+| `zstd`       | ~14 KB    |
+
+Cerca de **70% a menos** trocando uma linha. Nenhum ajuste de bundle, minify ou
+tree shaking chega perto, e todos eles custam horas.
+
+> ⛔ **`encode` NÃO é opção global.** Pôr a linha dentro do bloco `{ }` do topo
+> derruba o Caddy num loop de restart, e com ele **todos** os apps do host:
+>
+> ```
+> Error: adapting config using caddyfile: /etc/caddy/Caddyfile:15: unrecognized global option: encode
+> ```
+>
+> O bloco global só aceita opções de servidor (`auto_https`, `http_port`,
+> `admin`, `servers`, `log`). `encode` é **diretiva de handler** e vive dentro de
+> um bloco de site. Não existe como ligar compressão para todos os sites de uma
+> vez; o mais próximo é um snippet importado em cada um.
+
+**Jeito 1, direto no site.** Bom para ligar num app e conferir antes de mexer
+no resto:
+
+```caddyfile
+http://alferes.selflabs.org {
+	encode zstd gzip
+	reverse_proxy alferes-app:3000
+}
+```
+
+**Jeito 2, snippet.** Quando já forem vários sites, evita repetir e esquecer:
+
+```caddyfile
+# Comprime o que o cliente aceitar. A ordem é a preferência do servidor: zstd
+# primeiro por ser mais rápido e menor, gzip como reserva para cliente antigo.
+# O Caddy escolhe pelo Accept-Encoding e não recomprime o que já chega
+# comprimido (jpeg, png, zip, mp4).
+(comprimir) {
+	encode zstd gzip
+}
+
+http://alferes.selflabs.org {
+	import comprimir
+	reverse_proxy alferes-app:3000
+}
+```
+
+Depois: `docker restart caddy`.
+
+⚠️ **Confirme que o container subiu antes de comemorar.** Erro de sintaxe no
+Caddyfile não aparece no `docker restart`, que imprime o nome do container e sai
+com sucesso mesmo quando o Caddy morre logo depois:
+
+```bash
+docker ps --filter name=caddy --format '{{.Names}} {{.Status}}'   # tem de dizer "Up"
+docker logs caddy --tail 20                                       # sem "Error: adapting config"
+```
+
+**Como conferir se a compressão pegou:**
+
+```bash
+curl -s -o /dev/null -D - -H 'Accept-Encoding: zstd, gzip' https://SEU-APP/ \
+  | grep -iE 'content-encoding|content-length'
+```
+
+Tem de responder `Content-Encoding: zstd` (ou `gzip`). Se não vier nada, a causa
+mais provável **não** é a diretiva: é o Caddy estar fora do ar por erro de
+sintaxe. Confira o `docker ps` acima primeiro.
+
+**Resposta sem corpo não tem o que comprimir.** Testando por dentro do host, os
+hosts protegidos pelo Authelia devolvem `302` para o portal e os que têm login
+próprio também redirecionam. Redirect não carrega corpo, então o
+`Content-Encoding` não aparece, e isso **não** é falha. Para provar que o site
+comprime, peça uma URL que devolva página de verdade.
+
+Outro engano fácil: `curl` direto na `localhost:8080` com `Host:` mas **sem** os
+`X-Forwarded-*` faz o Authelia responder `400 Bad Request`. Não é o site
+quebrado, é o forward-auth recusando requisição malformada. Com
+`-H 'X-Forwarded-Proto: https' -H 'X-Forwarded-Host: app.dominio' -H 'X-Forwarded-Uri: /'`
+o mesmo pedido vira o `302` esperado.
+
+### Detalhes que economizam depuração
+
+- **`encode` no bloco global vale para todos os sites.** Repetir dentro de cada
+  `http://app.dominio { }` só é preciso se aquele site quiser política diferente.
+- **Atrás do Cloudflare Tunnel a compressão do Caddy continua valendo**, e é ela
+  que decide o tamanho no trecho `cloudflared` para `caddy`. A borda do
+  Cloudflare pode recomprimir, mas isso não substitui: o salto interno paga
+  igual.
+- **Server-Sent Events e streaming**: comprimir pode atrasar o primeiro byte. Se
+  um app usar SSE, restrinja com `encode { match { not path /eventos* } }`.
+- **Arquivo já comprimido em disco** (`.br`, `.gz` pré-gerados): use
+  `precompressed zstd br gzip` no `file_server`, senão o Caddy comprime de novo
+  a cada requisição.
 
 ## Troubleshooting
 
