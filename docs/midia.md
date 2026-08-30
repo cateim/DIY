@@ -1137,10 +1137,10 @@ docker exec jellyfin /usr/lib/jellyfin-ffmpeg/ffmpeg -hide_banner -nostats -logl
 
 Medição real nesta placa, transcodificando 60 s de HEVC 1080p 10-bit para H.264 720p:
 
-| Modo | fps | `speed` |
-| :--- | ---: | ---: |
-| **Hardware** (RKMPP + RGA) | 664 | **27,7x** |
-| Software (libx264 veryfast) | 24 | **1,02x** |
+| Modo                        | fps |   `speed` |
+| :-------------------------- | --: | --------: |
+| **Hardware** (RKMPP + RGA)  | 664 | **27,7x** |
+| Software (libx264 veryfast) |  24 | **1,02x** |
 
 O número que realmente importa é o `1,02x` do software: o transcode mal empatava com a reprodução em
 tempo real, então qualquer seek, segundo cliente ou tarefa concorrente já causava engasgo. Com a VPU

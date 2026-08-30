@@ -88,13 +88,13 @@ ssh vps-oracle 'sudo mv /tmp/id_ed25519* /srv/rustdesk/data/ && \
 As portas nativas precisam estar abertas em **dois lugares**: na **Security List / NSG** do painel Oracle
 **e** no firewall do host (`iptables`, ver [./vps-oracle.md](./vps-oracle.md#firewall)).
 
-| Porta | Protocolo     | Serviço                                       |
-| :---- | :------------ | :-------------------------------------------- |
-| 21115 | TCP           | teste de tipo de NAT (hbbs)                   |
-| 21116 | **TCP e UDP** | registro de ID (UDP) e hole punching (TCP)    |
-| 21117 | TCP           | relay (hbbr)                                  |
-| 21118 | TCP           | WebSocket do hbbs: **NÃO abrir** na Oracle    |
-| 21119 | TCP           | WebSocket do hbbr: **NÃO abrir** na Oracle    |
+| Porta | Protocolo     | Serviço                                    |
+| :---- | :------------ | :----------------------------------------- |
+| 21115 | TCP           | teste de tipo de NAT (hbbs)                |
+| 21116 | **TCP e UDP** | registro de ID (UDP) e hole punching (TCP) |
+| 21117 | TCP           | relay (hbbr)                               |
+| 21118 | TCP           | WebSocket do hbbs: **NÃO abrir** na Oracle |
+| 21119 | TCP           | WebSocket do hbbr: **NÃO abrir** na Oracle |
 
 > ⚠️ Não esqueça o **UDP na 21116**. É a porta de registro de ID: sem ela, os clientes não aparecem online.
 > É o erro mais comum nesse setup.
@@ -195,6 +195,7 @@ A stack está em [`assets/stacks/cortendesk.yml`](../assets/stacks/cortendesk.ym
    > (`127.0.0.11`), **ignorando o `/etc/hosts`**. Como esse nome só existe no `/etc/hosts` (via
    > `extra_hosts`), o WebSocket falha com `could not be resolved (3: Host not found)` mesmo com o
    > `getent` e o `nc` funcionando (esses dois **usam** o `/etc/hosts`).
+
 6. Abra `https://<console>`, faça login e **ative o 2FA** (TOTP). Como a página fica exposta com login próprio,
    sem Authelia na frente, o 2FA é a sua camada extra.
 7. Para os **dispositivos aparecerem no console** (frota, address book, audit), aponte o **API Server** dos
@@ -218,16 +219,16 @@ RustDesk Server no Windows Server 2025. Mantenha uma cópia dos arquivos `id_ed2
 
 ## Troubleshooting
 
-| Sintoma                                          | Causa provável                                 | Correção                                                                                                                                        |
-| :----------------------------------------------- | :--------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Clientes nunca ficam online (bolinha verde)      | **21116/UDP** fechada                          | Abra 21116 UDP na Security List Oracle **e** no `iptables` do host                                                                              |
-| Todos os clientes com "Key Mismatch"             | Key não migrada; hbbs gerou par novo           | Pare a stack, ponha os `id_ed25519*` antigos em `/srv/rustdesk/data`, suba de novo                                                              |
-| Conecta mas cai para relay sempre                | 21115/21116 TCP bloqueadas (sem hole punching) | Abra 21115 e 21116 TCP; confira NAT dos dois lados                                                                                              |
-| Web client: `websocket error before open: wss://.../ws/id` e o log do nginx diz `host.docker.internal could not be resolved` | o nginx resolve variável do `proxy_pass` pelo DNS do Docker e ignora o `/etc/hosts` | Ponha **o IP** em `RUSTDESK_WS_HOST` (ex.: `172.17.0.1`), não o nome |
-| Web client (CortenDesk) não conecta / tela preta | bridge WSS não alcança 21118/21119             | Confira o `RUSTDESK_WS_HOST` e as 21118/21119 publicadas no host pela stack `rustdesk-server`   |
-| CortenDesk: login retorna `500` e o log diz `attempt to write a readonly database` | `/srv/cortendesk/data` está `root:root`; o `www-data` não consegue criar o journal/WAL do SQLite **no diretório** | `chown -R` para o UID real do `www-data` do container e `chmod 775` na pasta (Parte 6, passo 3), depois `docker restart cortendesk` |
-| Container reinicia em loop                       | Key com permissão errada, ou volume vazio      | `chmod 600 id_ed25519`; confira o bind mount `/srv/rustdesk/data:/root`                                                                         |
-| Imagem não sobe no ARM                           | tag sem manifesto arm64                        | A `:latest` do `rustdesk-server` e a do `cortendesk` são multi-arch com arm64 nativo                                                            |
+| Sintoma                                                                                                                      | Causa provável                                                                                                    | Correção                                                                                                                            |
+| :--------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- |
+| Clientes nunca ficam online (bolinha verde)                                                                                  | **21116/UDP** fechada                                                                                             | Abra 21116 UDP na Security List Oracle **e** no `iptables` do host                                                                  |
+| Todos os clientes com "Key Mismatch"                                                                                         | Key não migrada; hbbs gerou par novo                                                                              | Pare a stack, ponha os `id_ed25519*` antigos em `/srv/rustdesk/data`, suba de novo                                                  |
+| Conecta mas cai para relay sempre                                                                                            | 21115/21116 TCP bloqueadas (sem hole punching)                                                                    | Abra 21115 e 21116 TCP; confira NAT dos dois lados                                                                                  |
+| Web client: `websocket error before open: wss://.../ws/id` e o log do nginx diz `host.docker.internal could not be resolved` | o nginx resolve variável do `proxy_pass` pelo DNS do Docker e ignora o `/etc/hosts`                               | Ponha **o IP** em `RUSTDESK_WS_HOST` (ex.: `172.17.0.1`), não o nome                                                                |
+| Web client (CortenDesk) não conecta / tela preta                                                                             | bridge WSS não alcança 21118/21119                                                                                | Confira o `RUSTDESK_WS_HOST` e as 21118/21119 publicadas no host pela stack `rustdesk-server`                                       |
+| CortenDesk: login retorna `500` e o log diz `attempt to write a readonly database`                                           | `/srv/cortendesk/data` está `root:root`; o `www-data` não consegue criar o journal/WAL do SQLite **no diretório** | `chown -R` para o UID real do `www-data` do container e `chmod 775` na pasta (Parte 6, passo 3), depois `docker restart cortendesk` |
+| Container reinicia em loop                                                                                                   | Key com permissão errada, ou volume vazio                                                                         | `chmod 600 id_ed25519`; confira o bind mount `/srv/rustdesk/data:/root`                                                             |
+| Imagem não sobe no ARM                                                                                                       | tag sem manifesto arm64                                                                                           | A `:latest` do `rustdesk-server` e a do `cortendesk` são multi-arch com arm64 nativo                                                |
 
 ## Notas Importantes
 
