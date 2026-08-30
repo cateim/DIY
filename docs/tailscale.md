@@ -135,8 +135,12 @@ O mesmo node serve vários serviços, um por **porta**. Ex.: adicionar um Grafan
    {
      "TCP": { "443": { "HTTPS": true }, "8443": { "HTTPS": true } },
      "Web": {
-       "${TS_CERT_DOMAIN}:443":  { "Handlers": { "/": { "Proxy": "http://portainer:9000" } } },
-       "${TS_CERT_DOMAIN}:8443": { "Handlers": { "/": { "Proxy": "http://grafana:3000" } } }
+       "${TS_CERT_DOMAIN}:443": {
+         "Handlers": { "/": { "Proxy": "http://portainer:9000" } }
+       },
+       "${TS_CERT_DOMAIN}:8443": {
+         "Handlers": { "/": { "Proxy": "http://grafana:3000" } }
+       }
      }
    }
    ```
@@ -150,13 +154,13 @@ O mesmo node serve vários serviços, um por **porta**. Ex.: adicionar um Grafan
 
 ## Troubleshooting
 
-| Sintoma | Causa provável | Correção |
-| :--- | :--- | :--- |
-| `https://selflabs…ts.net` não resolve no PC | MagicDNS off, ou Tailscale não roda no PC | Ligue MagicDNS (Parte 1); confirme o Tailscale ativo (ícone na bandeja) |
-| Erro de **certificado** ao abrir a URL | HTTPS Certificates off na tailnet | Ligue **HTTPS Certificates** (Parte 1) e redeploy o container |
-| `502`/página em branco | backend errado, ou alvo fora da `caddy-net` | Confira o `Proxy` (`http://<container>:porta`); garanta que o alvo está na `caddy-net` |
-| serve.json alterado não aplicou | o container lê no boot | `docker restart tailscale` |
-| Node não aparece em Machines | `TS_AUTHKEY` inválida/expirada | Gere nova auth key (Parte 2) e redeploy |
+| Sintoma                                     | Causa provável                              | Correção                                                                               |
+| :------------------------------------------ | :------------------------------------------ | :------------------------------------------------------------------------------------- |
+| `https://selflabs…ts.net` não resolve no PC | MagicDNS off, ou Tailscale não roda no PC   | Ligue MagicDNS (Parte 1); confirme o Tailscale ativo (ícone na bandeja)                |
+| Erro de **certificado** ao abrir a URL      | HTTPS Certificates off na tailnet           | Ligue **HTTPS Certificates** (Parte 1) e redeploy o container                          |
+| `502`/página em branco                      | backend errado, ou alvo fora da `caddy-net` | Confira o `Proxy` (`http://<container>:porta`); garanta que o alvo está na `caddy-net` |
+| serve.json alterado não aplicou             | o container lê no boot                      | `docker restart tailscale`                                                             |
+| Node não aparece em Machines                | `TS_AUTHKEY` inválida/expirada              | Gere nova auth key (Parte 2) e redeploy                                                |
 
 ## Notas Importantes
 
@@ -167,10 +171,10 @@ O mesmo node serve vários serviços, um por **porta**. Ex.: adicionar um Grafan
 
 ## Acessos
 
-| O quê | Onde | Proteção |
-| :--- | :--- | :--- |
-| Serviços via tailnet | `https://selflabs.<sua-tailnet>.ts.net[:porta]` | tailnet (seus devices) |
-| Admin da tailnet | [login.tailscale.com/admin](https://login.tailscale.com/admin) | conta Tailscale |
+| O quê                | Onde                                                           | Proteção               |
+| :------------------- | :------------------------------------------------------------- | :--------------------- |
+| Serviços via tailnet | `https://selflabs.<sua-tailnet>.ts.net[:porta]`                | tailnet (seus devices) |
+| Admin da tailnet     | [login.tailscale.com/admin](https://login.tailscale.com/admin) | conta Tailscale        |
 
 ## Referências
 

@@ -177,7 +177,7 @@ Cada job roda num container efêmero. O `url` em `server.connections.*.url` prec
     image: docker:dind
     container_name: forgejo-dind
     privileged: true # necessário pro dockerd interno
-    command: ['dockerd', '-H', 'tcp://0.0.0.0:2375', '--tls=false']
+    command: ["dockerd", "-H", "tcp://0.0.0.0:2375", "--tls=false"]
     restart: always
     volumes:
       - /srv/forgejo/dind:/var/lib/docker # cache de imagens, sobrevive a redeploys
@@ -366,10 +366,10 @@ O **`renovate.json` é portátil**: o mesmo arquivo funciona no GitHub, GitLab o
 
 O Forgejo publica uma **major a cada três meses** e segue [semver](https://semver.org/) desde a v7.0: só há breaking change quando o primeiro número muda. Duas linhas coexistem:
 
-| Canal | Exemplo | Suporte | Para quem |
-| :--- | :--- | :--- | :--- |
-| **LTS** (a major do primeiro trimestre de cada ano) | `15.0.x` | 1 ano e 3 meses (15.0 até **jul/2027**) | quem quer atualizar pouco e só por segurança |
-| **Estável** (a major mais recente) | `16.0.x` | ~3 meses e meio (16.0 até **out/2026**) | quem quer as features novas e aceita o ciclo trimestral |
+| Canal                                               | Exemplo  | Suporte                                 | Para quem                                               |
+| :-------------------------------------------------- | :------- | :-------------------------------------- | :------------------------------------------------------ |
+| **LTS** (a major do primeiro trimestre de cada ano) | `15.0.x` | 1 ano e 3 meses (15.0 até **jul/2027**) | quem quer atualizar pouco e só por segurança            |
+| **Estável** (a major mais recente)                  | `16.0.x` | ~3 meses e meio (16.0 até **out/2026**) | quem quer as features novas e aceita o ciclo trimestral |
 
 Esta stack fica no **canal LTS**. Aparecer no painel um aviso do tipo "Forgejo 16.0.x is now available" **não** significa que você está inseguro: significa que existe uma major mais nova. O que importa é estar no **último patch da sua linha**, porque é ele que carrega as correções de segurança.
 

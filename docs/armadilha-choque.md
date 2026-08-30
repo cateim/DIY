@@ -96,6 +96,7 @@ Sistema de proteção ativa usando uma malha eletrificada de 110V/127V. O contro
    - Configure os dados do seu broker Mosquitto (Host, Porta, Usuário, Senha).
    - Topic: `armadilha_choque`
 9. No **Console** (Travas de Segurança):
+
    ```text
    PowerOnState 0
    SetOption65 1
