@@ -93,7 +93,7 @@ O arquivo [`bentopdf.yml`](../assets/stacks/bentopdf.yml) define **um único ser
 O BentoPDF é um site estático: quase toda a configuração é **de build**, e só um punhado de variáveis vale em **runtime** (ou seja, funciona colando na stack do Portainer):
 
 | Variável         | O que faz                                                     | Padrão  |
-| :--------------- | :------------------------------------------------------------- | :------ |
+| :--------------- | :------------------------------------------------------------ | :------ |
 | `PORT`           | Porta que o nginx escuta dentro do container                  | `8080`  |
 | `DISABLE_IPV6`   | Desliga o listener IPv6 do nginx (host com IPv6 desabilitado) | `false` |
 | `ROBOTS_NOINDEX` | **Não use nesta imagem**, ver aviso abaixo                    | `false` |
@@ -206,7 +206,7 @@ Praticamente não há o que fazer backup: o BentoPDF é **stateless**. O único 
 
 ```bash
 # snapshot completo do que é seu
-sudo tar czf bentopdf-backup-$(date +%F).tar.gz -C /srv bentopdf
+sudo tar czf bentopdf-backup-$(date +%F).tar.gz -C /srv pdf
 ```
 
 > 💾 Seus **PDFs nunca ficam no servidor**: eles são abertos e salvos direto no navegador. O backup dos seus documentos é o backup da sua própria máquina, não deste container.
@@ -241,19 +241,19 @@ sudo chmod 644 /srv/pdf/config.json
 
 ## Troubleshooting
 
-| Sintoma                                                              | Causa provável / Correção                                                                                                                                                                                                                       |
-| :------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Conversão Word/Excel/PPT trava** (~55%) ou `SharedArrayBuffer is not defined` | A página não está cross-origin isolada. Rode `window.crossOriginIsolated` no Console: se der `false`, você abriu por HTTP puro (ex.: `http://192.168.x.x`) ou um proxy externo removeu os headers `Cross-Origin-Opener-Policy` / `Cross-Origin-Embedder-Policy`. Acesse pelo `https://pdf.selflabs.org` (via Caddy + Cloudflare) e não pelo IP da LAN. |
-| **Ferramenta avançada falha** (EPUB/MOBI, PDF/A, comprimir, sumário) | O navegador não conseguiu buscar o módulo WASM em `cdn.jsdelivr.net`. Verifique a internet **da máquina do usuário** (o servidor não participa) e se algum bloqueador de DNS/anúncio está barrando a CDN.                                        |
-| Container reinicia com `socket() [::]:8080 failed`                    | Host com IPv6 desabilitado no kernel. Adicione `DISABLE_IPV6: "true"` nas env vars da stack e redeploy.                                                                                                                                          |
-| Loop de restart com `sed: can't create temp file '/usr/share/nginx/html/index.htmlXXXXXX': Permission denied` | `ROBOTS_NOINDEX=true` na imagem padrão. O `sed -i` do script de noindex não consegue gravar no diretório (dono `root`) e o entrypoint aborta. **Remova a variável** da stack e redeploy; use `header X-Robots-Tag` no Caddy se precisar do noindex ([Variáveis de ambiente](#variáveis-de-ambiente-disponíveis)). |
-| Log do app reclamando de `config.json` / `403`                        | O bind mount virou pasta. Pare a stack, `sudo rmdir /srv/pdf/config.json`, recrie o arquivo com `echo '{}' \| sudo tee /srv/pdf/config.json` ([Parte 1](#parte-1-preparar-a-pasta-de-dados)) e redeploy.                              |
-| **502 / Bad Gateway** em `pdf.selflabs.org`                           | App fora da `caddy-net`, nome de container errado no Caddyfile (tem que ser `bentopdf`), ou o Authelia caído. Confirme com `docker network inspect caddy-net` e que o `authelia` está `Up`.                                                      |
-| Redireciona pro `auth.` e não volta                                   | Problema no forward-auth/`X-Forwarded-Proto`. Ver [caddy → Troubleshooting](./caddy.md#troubleshooting).                                                                                                                                        |
-| **Assinar PDF / preencher formulário** mostra viewer em branco        | MIME de `.mjs` servido como `application/octet-stream`. A imagem oficial já trata isso; se aparecer, algum proxy/CDN na frente está re-farejando o tipo. Confira o `Content-Type` da requisição `.mjs` no DevTools → Network.                    |
-| Arquivo grande trava ou o navegador fica sem memória                  | O processamento é **local**: o limite é a RAM da máquina do usuário, não do servidor. Feche abas, use uma máquina com mais memória ou divida o PDF antes.                                                                                        |
-| Editei o `config.json` e nada mudou                                   | Cache. Reinicie o container e/ou faça `Ctrl+F5` no navegador ([Parte 5](#parte-5-esconder-ferramentas-opcional)).                                                                                                                               |
-| A UI aparece em inglês                                                | Normal: o padrão de fábrica é `en`. Troque no seletor de idioma da própria UI ([Parte 4](#parte-4-primeiro-acesso-e-idioma)); mudar o padrão exige rebuild da imagem.                                                                            |
+| Sintoma                                                                                                       | Causa provável / Correção                                                                                                                                                                                                                                                                                                                              |
+| :------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Conversão Word/Excel/PPT trava** (~55%) ou `SharedArrayBuffer is not defined`                               | A página não está cross-origin isolada. Rode `window.crossOriginIsolated` no Console: se der `false`, você abriu por HTTP puro (ex.: `http://192.168.x.x`) ou um proxy externo removeu os headers `Cross-Origin-Opener-Policy` / `Cross-Origin-Embedder-Policy`. Acesse pelo `https://pdf.selflabs.org` (via Caddy + Cloudflare) e não pelo IP da LAN. |
+| **Ferramenta avançada falha** (EPUB/MOBI, PDF/A, comprimir, sumário)                                          | O navegador não conseguiu buscar o módulo WASM em `cdn.jsdelivr.net`. Verifique a internet **da máquina do usuário** (o servidor não participa) e se algum bloqueador de DNS/anúncio está barrando a CDN.                                                                                                                                              |
+| Container reinicia com `socket() [::]:8080 failed`                                                            | Host com IPv6 desabilitado no kernel. Adicione `DISABLE_IPV6: "true"` nas env vars da stack e redeploy.                                                                                                                                                                                                                                                |
+| Loop de restart com `sed: can't create temp file '/usr/share/nginx/html/index.htmlXXXXXX': Permission denied` | `ROBOTS_NOINDEX=true` na imagem padrão. O `sed -i` do script de noindex não consegue gravar no diretório (dono `root`) e o entrypoint aborta. **Remova a variável** da stack e redeploy; use `header X-Robots-Tag` no Caddy se precisar do noindex ([Variáveis de ambiente](#variáveis-de-ambiente-disponíveis)).                                      |
+| Log do app reclamando de `config.json` / `403`                                                                | O bind mount virou pasta. Pare a stack, `sudo rmdir /srv/pdf/config.json`, recrie o arquivo com `echo '{}' \| sudo tee /srv/pdf/config.json` ([Parte 1](#parte-1-preparar-a-pasta-de-dados)) e redeploy.                                                                                                                                               |
+| **502 / Bad Gateway** em `pdf.selflabs.org`                                                                   | App fora da `caddy-net`, nome de container errado no Caddyfile (tem que ser `bentopdf`), ou o Authelia caído. Confirme com `docker network inspect caddy-net` e que o `authelia` está `Up`.                                                                                                                                                            |
+| Redireciona pro `auth.` e não volta                                                                           | Problema no forward-auth/`X-Forwarded-Proto`. Ver [caddy → Troubleshooting](./caddy.md#troubleshooting).                                                                                                                                                                                                                                               |
+| **Assinar PDF / preencher formulário** mostra viewer em branco                                                | MIME de `.mjs` servido como `application/octet-stream`. A imagem oficial já trata isso; se aparecer, algum proxy/CDN na frente está re-farejando o tipo. Confira o `Content-Type` da requisição `.mjs` no DevTools → Network.                                                                                                                          |
+| Arquivo grande trava ou o navegador fica sem memória                                                          | O processamento é **local**: o limite é a RAM da máquina do usuário, não do servidor. Feche abas, use uma máquina com mais memória ou divida o PDF antes.                                                                                                                                                                                              |
+| Editei o `config.json` e nada mudou                                                                           | Cache. Reinicie o container e/ou faça `Ctrl+F5` no navegador ([Parte 5](#parte-5-esconder-ferramentas-opcional)).                                                                                                                                                                                                                                      |
+| A UI aparece em inglês                                                                                        | Normal: o padrão de fábrica é `en`. Troque no seletor de idioma da própria UI ([Parte 4](#parte-4-primeiro-acesso-e-idioma)); mudar o padrão exige rebuild da imagem.                                                                                                                                                                                  |
 
 ---
 
@@ -278,8 +278,8 @@ sudo chmod 644 /srv/pdf/config.json
 | **Gestão de usuários** | `https://users.selflabs.org` (lldap)      |
 | **Portal de login**    | `https://auth.selflabs.org` (Authelia)    |
 | **Portainer**          | Stack `bentopdf`                          |
-| **Dados (host)**       | `/srv/pdf`                           |
-| **Config opcional**    | `/srv/pdf/config.json`               |
+| **Dados (host)**       | `/srv/pdf`                                |
+| **Config opcional**    | `/srv/pdf/config.json`                    |
 
 ---
 
