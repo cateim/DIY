@@ -196,7 +196,7 @@ docker compose -f bentopdf.yml pull
 docker compose -f bentopdf.yml up -d
 ```
 
-> 🔒 **Quer reprodutibilidade?** Fixe a versão na imagem (ex.: `ghcr.io/alam00000/bentopdf-simple:1.15.4`) e, para atualizar, bump a tag. O projeto publica tags versionadas junto com a `:latest`.
+> 🔒 **Quer reprodutibilidade?** Fixe a versão na imagem (ex.: `ghcr.io/alam00000/bentopdf-simple:latest`) e, para atualizar, bump a tag. O projeto publica tags versionadas junto com a `:latest` também.
 
 > ⚠️ **Atualizar não custa nada aqui.** Como não existe banco nem migração, trocar de versão é trocar arquivos estáticos. Se algo quebrar, voltar para a tag anterior resolve na hora.
 
