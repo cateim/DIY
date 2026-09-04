@@ -56,7 +56,11 @@ services:
 
   # ---------------------------------------------------------------- authelia
   authelia:
-    image: ghcr.io/authelia/authelia:4.39     # multi-arch (inclui arm64)
+    # Rolling: acompanha a linha estável do Authelia (hoje 4.39.x). Atualize com
+    # "Re-pull image and redeploy" - o redeploy simples reaproveita o cache.
+    # Se um salto de versão quebrar a configuração, fixe a tag antiga (ex.:
+    # ':4.39'), confira o CHANGELOG do Authelia e só então volte para ':latest'.
+    image: ghcr.io/authelia/authelia:latest   # multi-arch (inclui arm64)
     container_name: authelia
     restart: unless-stopped
     security_opt:

@@ -110,7 +110,7 @@ Adicione uma regra em `access_control` na config (`one_factor` = só senha, ou `
 
 ## Parte 8: Atualizar e backup
 
-- **Atualizar:** Portainer → stack `authelia` → **Re-pull image and redeploy**. O Authelia usa a tag `:4.39` (linha estável); a `lldap:stable` é rolling.
+- **Atualizar:** Portainer → stack `authelia` → **Re-pull image and redeploy**. As duas imagens são rolling (`authelia:latest` e `lldap:stable`), e o redeploy comum reaproveita o cache sem baixar versão nova. Se um salto de versão quebrar a configuração, fixe a tag anterior (ex.: `:4.39`) na stack, redeploy, e volte para `:latest` depois de ajustar a config.
 - **Backup:** `/srv/authelia` (SQLite do Authelia + `users.db` do lldap + config) **+** os 8 segredos. Restaurar os dois recompõe tudo.
 
 ## Troubleshooting
