@@ -106,11 +106,27 @@ sudo docker run -d \
 
 Após alguns segundos, o Portainer estará no ar e pronto para ser configurado.
 
+### 1. Pegar o setup token nos logs
+
+Desde o Portainer 2.43 (e 2.39.4 no ramo LTS), uma instalação nova exige um **setup token** para criar o primeiro administrador. Ele impede que outra pessoa na rede chegue antes de você na tela de cadastro e assuma a instância. O token é gerado a cada inicialização do container e aparece apenas nos logs:
+
+```bash
+sudo docker logs portainer 2>&1 | grep setup_token= | tail -1
+```
+
+A saída é `setup_token=` seguido de 64 caracteres hexadecimais. Copie só o que vem depois do `=`.
+
+> ⚠️ **Janela de 5 minutos.** Se o administrador não for criado em até 5 minutos depois que o container sobe, o Portainer trava o setup por segurança. Reinicie com `sudo docker restart portainer` e rode o comando acima de novo: cada reinício gera um token novo e invalida o anterior. O `tail -1` garante que você pegue sempre o mais recente.
+
+> ℹ️ Para definir o token você mesmo em vez de buscar no log, acrescente `--setup-token SEU_TOKEN_AQUI` **depois** do nome da imagem no `docker run`. Existe também `--no-setup-token`, que desliga a proteção: só faz sentido em rede totalmente isolada.
+
+### 2. Criar o administrador
+
 1.  Abra seu navegador de internet.
 2.  Acesse o endereço: `http://IP_DO_SEU_DEBIAN:9000`
     - (Substitua `IP_DO_SEU_DEBIAN` pelo IP do seu servidor).
-3.  Na primeira tela, crie seu usuário administrador e senha.
     - Se preferir acessar via HTTPS, use `https://IP_DO_SEU_DEBIAN:9443`. Nesse caso, o navegador exibirá um aviso de certificado autoassinado, clique em "Avançado" e "Aceitar o risco".
+3.  Preencha **Username** e **Password** (mínimo de 12 caracteres), cole o token no campo **Setup token** e clique em **Create user**.
 4.  Selecione a opção "Gerenciar o ambiente Docker local" e clique em "Conectar".
 
 Pronto! Seu ambiente Docker e Portainer está 100% operacional. 🚀
