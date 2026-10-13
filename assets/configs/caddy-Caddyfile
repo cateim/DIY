@@ -31,6 +31,10 @@
 # --- Snippet de forward-auth do Authelia (importe em cada host protegido) ----
 # Em 2xx o Caddy copia os headers de identidade antes do proxy; em 302 devolve
 # o redirect do portal ao browser.
+(comprimir) {
+	encode zstd gzip
+}
+
 (authelia) {
 	forward_auth authelia:9091 {
 		uri /api/authz/forward-auth
@@ -40,11 +44,13 @@
 
 # --- Portal do Authelia (público; NÃO passa pelo forward_auth) ---------------
 http://auth.selflabs.org {
+	import comprimir
 	reverse_proxy authelia:9091
 }
 
 # --- UI web do lldap (protegida) --------------------------------------------
 http://users.selflabs.org {
+	import comprimir
 	import authelia
 	reverse_proxy lldap:17170
 }
@@ -55,6 +61,7 @@ http://users.selflabs.org {
 # e Cross-Origin-Embedder-Policy que vêm do nginx da imagem. São eles que liberam o
 # SharedArrayBuffer usado pelas conversões de Office (LibreOffice WASM).
 http://pdf.selflabs.org {
+	import comprimir
 	import authelia
 	reverse_proxy bentopdf:8080
 }
@@ -64,6 +71,7 @@ http://pdf.selflabs.org {
 # (webhook do GitHub = POST sem sessão de browser -> 302 login -> quebra).
 # O Portainer se protege com o login dele; os webhooks usam token na URL.
 http://portainervps.selflabs.org {
+	import comprimir
 	reverse_proxy portainer:9000
 }
 
@@ -72,6 +80,7 @@ http://portainervps.selflabs.org {
 # autentica os usuários dele, e os webhooks do Mercado Pago (POST sem sessão
 # de browser) precisam chegar direto. Stack: ../stacks/criarviral.yml
 http://criarviral.selflabs.org {
+	import comprimir
 	reverse_proxy criarviral:3000
 }
 
@@ -84,6 +93,7 @@ http://criarviral.selflabs.org {
 # Use `path /admin /admin/*` e NUNCA `path /admin*`: este último casaria também
 # /administrador e qualquer outro path com o mesmo prefixo textual.
 http://radar.selflabs.org {
+	import comprimir
 	@admin path /admin /admin/*
 	forward_auth @admin authelia:9091 {
 		uri /api/authz/forward-auth
@@ -101,12 +111,44 @@ http://radar.selflabs.org {
 # /ws/* aqui. Hostname separado do `rustdesk-id` (esse é nuvem cinza, protocolo
 # nativo); este é proxied/laranja e chega pelo cloudflared.
 http://rustdesk.selflabs.org {
+	import comprimir
 	reverse_proxy cortendesk:8080
 }
 
-# --- Modelo para adicionar um app novo --------------------------------------
-# 1) o app entra na rede externa `caddy-net`; 2) copie o bloco abaixo; 3) no
-#    cloudflared publique novo.selflabs.org -> http://localhost:8080.
+# --- ALFERES ---
+# Login e RBAC próprios: sem forward-auth, como criarviral e portainervps.
+http://alferes.selflabs.org {
+        import comprimir
+        reverse_proxy alferes-app:3000
+}
+
+# --- hubb-monitor: painel de monitoramento dos clientes ----------------------
+# Painel atrás do Authelia, com três caminhos abertos de propósito:
+#   /api/beszel/agent-connect  WebSocket dos agentes. O forward-auth quebraria o
+#                              handshake, e o hub confere o token de cada agente.
+#   /api/sinal/*               sinais do HA e do ha-backup; o token vai na URL.
+#   /api/saude                 lido pelo vigia do homelab; não traz dado de cliente.
+# Stack: monitoramento (repo self-labs/hubb-monitor, docker-compose.yml).
+http://monitor.selflabs.org {
+	@agentes path /api/beszel/agent-connect
+	handle @agentes {
+		reverse_proxy beszel:8090
+	}
+	@abertos path /api/sinal/* /api/saude
+	handle @abertos {
+		reverse_proxy hubb-monitor:3000
+	}
+	handle {
+		import comprimir
+		import authelia
+		reverse_proxy hubb-monitor:3000
+	}
+}
+
+# Modelo para adicionar um app novo --------------------------------------
+# 1) o app entra na rede externa `caddy-net`;
+# 2) copie o bloco abaixo (usar import authelia quando não há login) ;
+# 3) no cloudflared publique novo.selflabs.org -> http://localhost:8080.
 # http://novo.selflabs.org {
 # 	import authelia
 # 	reverse_proxy nome-do-container:porta
