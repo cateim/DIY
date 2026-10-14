@@ -123,18 +123,20 @@ http://alferes.selflabs.org {
 }
 
 # --- hubb-monitor: painel de monitoramento dos clientes ----------------------
-# Painel atrás do Authelia, com três caminhos abertos de propósito:
+# Painel atrás do Authelia, com quatro caminhos abertos de propósito:
 #   /api/beszel/agent-connect  WebSocket dos agentes. O forward-auth quebraria o
 #                              handshake, e o hub confere o token de cada agente.
 #   /api/sinal/*               sinais do HA e do ha-backup; o token vai na URL.
 #   /api/saude                 lido pelo vigia do homelab; não traz dado de cliente.
+#   /email-logo.png            a marca do cabeçalho dos e-mails de alerta, que o
+#                              leitor de e-mail baixa sem sessão do Authelia.
 # Stack: monitoramento (repo self-labs/hubb-monitor, docker-compose.yml).
 http://monitor.selflabs.org {
 	@agentes path /api/beszel/agent-connect
 	handle @agentes {
 		reverse_proxy beszel:8090
 	}
-	@abertos path /api/sinal/* /api/saude
+	@abertos path /api/sinal/* /api/saude /email-logo.png
 	handle @abertos {
 		reverse_proxy hubb-monitor:3000
 	}
