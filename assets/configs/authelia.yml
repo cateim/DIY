@@ -75,6 +75,11 @@ access_control:
       resources:
         - '^/admin([/?].*)?$'
       policy: 'one_factor'
+    # Painel de monitoramento dos clientes da Hubb (stack monitoramento). Os
+    # sinais, a saúde, a logo dos e-mails e os agentes do Beszel nem chegam aqui:
+    # o Caddyfile não manda esses caminhos para o forward-auth.
+    - domain: 'monitor.selflabs.org'
+      policy: 'two_factor'
     # Exemplo p/ restringir a um grupo do lldap:
     # - domain: 'pdf.selflabs.org'
     #   policy: 'two_factor'

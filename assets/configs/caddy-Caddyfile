@@ -115,7 +115,7 @@ http://rustdesk.selflabs.org {
 	reverse_proxy cortendesk:8080
 }
 
-# --- ALFERES ---
+# --- ALFERES (P1) ---
 # Login e RBAC próprios: sem forward-auth, como criarviral e portainervps.
 http://alferes.selflabs.org {
         import comprimir
