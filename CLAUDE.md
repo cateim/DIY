@@ -20,6 +20,11 @@ matching the existing guides, not for software-engineering ceremony.
 - `assets/configs/<service>-*.{yml,js,…}` — copy-paste config templates referenced by guides.
 - `assets/datasheets/` — hardware datasheets (PDF).
 - `README.md` — the project index table; every guide has a row.
+- `CHANGELOG.md`: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/) with CalVer
+  (`YYYY.M.R`), in Portuguese like the guides. A notable change lands in `[Unreleased]`
+  **before** the task is reported as done, never reconstructed from `git log` afterwards.
+- `assets/configs/caddy-Caddyfile` and `assets/configs/authelia.yml` mirror the live files of
+  the vps-oracle; change the server and the mirror together.
 - `.env` is **gitignored** — never commit secrets.
 
 ## Deploy: Portainer first (do NOT lead with `docker compose`)
