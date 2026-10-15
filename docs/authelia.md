@@ -104,6 +104,29 @@ O notifier do Authelia usa **SMTP** (Resend) — é o que entrega os **links de 
 3. No sucesso, grava o cookie `authelia_session` no domínio-pai `selflabs.org`; o Caddy recebe 2xx, copia `Remote-User/Groups/Name/Email` e faz o proxy para o app.
 4. Como o cookie é do domínio-pai, **um login cobre todos os subdomínios** (`pdf`, `users`, `auth`).
 
+## Parte 6.1: Marca e tema do portal
+
+O portal (`auth.selflabs.org`) usa o tema automático e a marca Self-Labs. O Authelia não aceita CSS próprio nem uma aparência por site: são só o tema, a logo e o favicon, os mesmos para todos os apps protegidos.
+
+1. Copie [`assets/configs/authelia-assets/`](../assets/configs/authelia-assets/) para o host (os nomes `logo.png` e `favicon.ico` são os que o Authelia procura):
+
+   ```bash
+   sudo install -d -m 755 /srv/authelia/config/assets
+   sudo install -m 644 logo.png favicon.ico /srv/authelia/config/assets/
+   ```
+
+2. Na config, `theme: 'auto'` no topo e `asset_path: '/config/assets/'` dentro de `server:` (já estão em [`assets/configs/authelia.yml`](../assets/configs/authelia.yml)).
+3. Valide e reinicie:
+
+   ```bash
+   docker exec authelia authelia validate-config --config /config/configuration.yml
+   docker restart authelia
+   ```
+
+> ⚠️ Sem Redis, as sessões ficam na memória do Authelia: cada reinício desloga todo mundo de todos os apps protegidos, e o próximo acesso pede senha e 2FA de novo.
+
+A `logo.png` é o logo da Self-Labs (digital e escrita) em fundo transparente, 512x512, gerado a partir do `selflabs.svg` sem o retângulo de fundo, para servir ao tema claro e ao escuro: um fundo opaco apareceria como um quadrado num dos dois. No claro, as cores da marca ficam mais suaves, mas a digital continua legível.
+
 ## Parte 7: Proteger outro app
 
 Adicione uma regra em `access_control` na config (`one_factor` = só senha, ou `two_factor` = senha + TOTP) e um bloco `import authelia` no Caddyfile — passo a passo em **[caddy → Parte 4](./caddy.md#parte-4-proteger-um-app-novo-o-reuso)**.

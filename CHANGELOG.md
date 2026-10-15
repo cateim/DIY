@@ -10,12 +10,14 @@ As versões seguem o esquema **CalVer `YYYY.M.R`** (ano, mês sem zero à esquer
 ### ✨ Added
 
 - **Espelho do Caddyfile em uso** ([`assets/configs/caddy-Caddyfile`](./assets/configs/caddy-Caddyfile)): o arquivo da vps-oracle, linha por linha, com o bloco novo do `monitor.selflabs.org` (painel de monitoramento dos clientes da Hubb) atrás do Authelia e os quatro caminhos abertos de propósito (WebSocket dos agentes do Beszel, sinais, saúde e a marca dos e-mails de alerta), cada um com o motivo.
+- **Marca Self-Labs e tema automático no portal do Authelia** ([`docs/authelia.md`](./docs/authelia.md), Parte 6.1): `theme: 'auto'` (segue o claro ou escuro do aparelho de cada um), `server.asset_path` e o logo e o favicon em [`assets/configs/authelia-assets/`](./assets/configs/authelia-assets/), aplicados na vps-oracle em 15/10/2026. O logo é o da Self-Labs em fundo transparente, gerado do SVG sem o retângulo de fundo.
 - **Regra do `monitor.selflabs.org` no espelho do Authelia** ([`assets/configs/authelia.yml`](./assets/configs/authelia.yml)): com `default_policy: deny`, um host novo atrás do forward-auth sem regra própria responde 403 em todas as telas.
 
 ### 🔧 Changed
 
 - **Primeiro login do Portainer** ([`docs/portainer-debian.md`](./docs/portainer-debian.md)): o token de setup que a tela pede agora está documentado.
 - **O bloco do ALFERES no Caddyfile perdeu o rótulo "(P1)"**, no espelho e no servidor: o sistema vai além do módulo P1.
+- **O Caddy entrou na rede `monitor-proxy`** ([`assets/stacks/caddy.yml`](./assets/stacks/caddy.yml), [`docs/caddy.md`](./docs/caddy.md)), que ele divide só com o painel de monitoramento da Hubb e o hub do Beszel. Na `caddy-net`, qualquer outro app do host chamaria os dois direto, sem passar pelo Authelia, e o painel não tem login próprio.
 
 ## [2026.9.1] - 2026-09-04
 

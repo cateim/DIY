@@ -18,6 +18,9 @@ server:
   # http://authelia:9091 pela rede auth-net. Os endpoints de authz (incluindo
   # /api/authz/forward-auth) já vêm habilitados por padrão — não sobrescreva.
   address: 'tcp://:9091/'
+  # Marca Self-Labs no portal: o logo.png e o favicon.ico desta pasta substituem os do
+  # Authelia. Origem: assets/configs/authelia-assets/ no repositório DIY.
+  asset_path: '/config/assets/'
 
 log:
   level: 'info'
