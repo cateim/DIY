@@ -58,7 +58,7 @@ Match the existing stacks (`assets/stacks/forgejo.yml`, `firefly.yml`, `n8n.yml`
   the app with `depends_on: { <db>: { condition: service_healthy } }`.
 - **Image tags:** most stacks track a rolling tag (`:latest` / `:stable`); to update, use Portainer's
   **"Re-pull image and redeploy"** (a plain redeploy reuses the cache). Pin a specific version only
-  when you want reproducibility or migrations are sensitive (e.g. `forgejo` pins `:15.0.2`).
+  when you want reproducibility or migrations are sensitive (e.g. `forgejo` pins `:15.0.6`, the LTS line).
 - Optional `logging` json-file with `max-size`/`max-file` for chatty services.
 - **One database instance per stack** (self-contained). Do not share one Postgres across projects
   unless explicitly requested; if so, use a separate DATABASE + ROLE per app and never a shared

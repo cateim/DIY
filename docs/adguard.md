@@ -331,6 +331,23 @@ Como o Cloudflare não permite mais usar `Path` dentro das regras de acesso, pre
 - `https://adguard.exemplo.com/dns-query` → Acesso público (DoH funciona)
 - `https://adguard.exemplo.com` → Exige login por e-mail OTP
 
+### 8.3. Limite de requisições no `/dns-query`
+
+O `/dns-query` é público, então a zona limita quantas consultas um mesmo endereço faz:
+**Security** > **WAF** > **Rate limiting rules**, mesmo IP e data center, 50 requisições em
+10 segundos, depois **Block** por 10 segundos.
+
+> ⚠️ O plano Free da Cloudflare tem **uma** regra de rate limiting por zona. Na zona
+> `selflabs.org` ela é dividida com os sinais do painel de monitoramento da Hubb
+> (`monitor.selflabs.org/api/sinal/*`, desde 15/10/2026), com uma expressão `or`:
+>
+> ```text
+> (http.host eq "adguard.selflabs.org" and starts_with(http.request.uri.path, "/dns-query")) or (http.host eq "monitor.selflabs.org" and starts_with(http.request.uri.path, "/api/sinal/"))
+> ```
+>
+> Ao editar a regra por causa do AdGuard, mantenha a segunda metade. O contador é por
+> endereço e vale para as duas metades juntas.
+
 ---
 
 ## ✅ Parte 9: Validação Final
