@@ -31,6 +31,7 @@ services:
     networks:
       - caddy-net                                  # alcança os apps (bentopdf, ...)
       - auth-net                              # alcança authelia + lldap
+      - monitor-proxy                         # alcança hubb-monitor + beszel, que não ficam na caddy-net
     logging:
       driver: "json-file"
       options:
@@ -44,3 +45,9 @@ networks:
   auth-net:
     name: auth-net
     external: true                            # docker network create auth-net
+  # Rede só do Caddy com o painel de monitoramento e o hub do Beszel (stack monitoramento,
+  # repo self-labs/hubb-monitor): na caddy-net qualquer outro app do host chamaria os dois
+  # direto, sem passar pelo Authelia.
+  monitor-proxy:
+    name: monitor-proxy
+    external: true                            # docker network create monitor-proxy

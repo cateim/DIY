@@ -17,16 +17,20 @@ Cloudflare (TLS) → Cloudflare Tunnel → cloudflared (host) → http://localho
                                                                       │  (Caddy)
         rede auth-net  ──► authelia:9091 (forward-auth)  ◄────────────┤
         rede auth-net  ──► lldap:17170 (UI de usuários)  ◄────────────┤
-        rede caddy-net ──► bentopdf:8080 (e outros apps) ◄────────────┘
+        rede caddy-net ──► bentopdf:8080 (e outros apps) ◄────────────┤
+   rede monitor-proxy ──► hubb-monitor:3000, beszel:8090 ◄────────────┘
 ```
 
-Só o Caddy publica porta no host (presa em `127.0.0.1:8080`). Ele cruza **duas redes**: `caddy-net` (apps) e `auth-net` (Authelia/lldap). Os apps ficam só na `caddy-net`, sem porta no host.
+Só o Caddy publica porta no host (presa em `127.0.0.1:8080`). Ele cruza **três redes**: `caddy-net` (apps), `auth-net` (Authelia/lldap) e `monitor-proxy` (o painel de monitoramento da Hubb e o hub do Beszel). Os apps ficam só na `caddy-net`, sem porta no host.
+
+> ℹ️ Na `caddy-net` qualquer app alcança qualquer outro direto, sem passar pelo Caddy e, portanto, sem Authelia. Um app que confia no Authelia em vez de ter login próprio (o painel de monitoramento) ganha uma rede só dele com o Caddy, como a `monitor-proxy`.
 
 ## Parte 1: Redes e pastas (via SSH, uma vez)
 
 ```bash
 docker network create caddy-net       # Caddy <-> apps
-docker network create auth-net   # Caddy <-> Authelia/lldap
+docker network create auth-net        # Caddy <-> Authelia/lldap
+docker network create monitor-proxy   # Caddy <-> hubb-monitor e beszel (só eles)
 sudo mkdir -p /srv/caddy/{data,config}
 ```
 
