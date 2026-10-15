@@ -18,6 +18,15 @@ As versões seguem o esquema **CalVer `YYYY.M.R`** (ano, mês sem zero à esquer
 - **Primeiro login do Portainer** ([`docs/portainer-debian.md`](./docs/portainer-debian.md)): o token de setup que a tela pede agora está documentado.
 - **O bloco do ALFERES no Caddyfile perdeu o rótulo "(P1)"**, no espelho e no servidor: o sistema vai além do módulo P1.
 - **O Caddy entrou na rede `monitor-proxy`** ([`assets/stacks/caddy.yml`](./assets/stacks/caddy.yml), [`docs/caddy.md`](./docs/caddy.md)), que ele divide só com o painel de monitoramento da Hubb e o hub do Beszel. Na `caddy-net`, qualquer outro app do host chamaria os dois direto, sem passar pelo Authelia, e o painel não tem login próprio.
+- **O guia do Forgejo sobe pelo Portainer primeiro** ([`docs/forgejo.md`](./docs/forgejo.md), Partes 2, 3 e 5.4), como os outros: a senha do banco vai na aba Environment variables da Stack, e o `docker compose up -d` com `.env` virou a alternativa via SSH. O runner que espera o `runner-config.yml` sobe sozinho (ou com `docker restart forgejo-runner`), sem redeploy da Stack.
+
+- **O limite de requisições do DoH do AdGuard ganhou seção no guia** ([`docs/adguard.md`](./docs/adguard.md), Parte 8.3): a regra existia só no painel da Cloudflare. Desde 15/10/2026 ela também cobre os sinais do painel de monitoramento da Hubb (`/api/sinal/*`), porque o plano Free tem uma regra só por zona; o guia mostra a expressão inteira e pede para manter as duas metades.
+
+### 🐛 Fixed
+
+- **README e convenções descreviam outra stack do Forgejo**: a linha do índice falava em Docker-in-Docker, mas o runner usa o Docker do host (DOOD) desde a 15.0.6, e o `CLAUDE.md` citava a tag `:15.0.2` como exemplo de versão fixa, quando a stack fixa a `:15.0.6` (LTS).
+- **A linha da Armadilha de Choque no README listava sensores ultrassônicos** (HC-SR04 ou RCWL-1655); o guia usa o PIR DYP-ME003.
+- **O guia do Caddy se contradizia sobre a compressão** ([`docs/caddy.md`](./docs/caddy.md), Parte 6): o aviso diz, com o erro medido, que `encode` no bloco global derruba o Caddy, e uma dica mais abaixo dizia que o `encode` global valia para todos os sites. A dica agora diz que um site sem `import comprimir` não comprime.
 
 ## [2026.9.1] - 2026-09-04
 

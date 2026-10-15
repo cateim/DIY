@@ -1,6 +1,6 @@
 # Guia de Instalação: Forgejo (Git Self-Hosted via Docker + PostgreSQL + CI/CD)
 
-Este guia sobe o **Forgejo** — um servidor Git self-hosted leve (fork comunitário do Gitea), alternativa ao GitHub/GitLab para hospedar seus próprios repositórios, issues e **CI/CD** na sua infra. A stack usa **Docker Compose** com **PostgreSQL** e já inclui o **Forgejo Actions** (runner + Docker-in-Docker) subindo junto. Tudo centralizado em `/srv`, no mesmo padrão dos outros guias do repo.
+Este guia sobe o **Forgejo**, um servidor Git self-hosted leve (fork comunitário do Gitea), alternativa ao GitHub/GitLab para hospedar seus próprios repositórios, issues e **CI/CD** na sua infra. A stack sobe como **Stack do Portainer** com **PostgreSQL** e já inclui o **Forgejo Actions** (runner usando o Docker do host) subindo junto. Tudo centralizado em `/srv`, no mesmo padrão dos outros guias do repo.
 
 **Pré-requisito:** Docker Engine + Docker Compose instalados. Se ainda não tem, veja o guia [Docker + Portainer no Debian](./portainer-debian.md).
 
@@ -23,14 +23,13 @@ sudo chown -R 1000:1000 /srv/forgejo/runner
 
 ## Parte 2: Configurar o Segredo do Banco
 
-A stack lê a senha do banco de uma variável de ambiente (nunca hardcode senha no compose). Crie/edite o arquivo `.env` ao lado do compose:
+A stack lê a senha do banco de uma variável de ambiente (nunca hardcode senha no compose): `FORGEJO_DB_PASSWORD`. No Portainer ela vai na aba **Environment variables** da Stack (Parte 3), nunca num arquivo `.env` dentro do Portainer.
 
-```bash
-# .env
+```text
 FORGEJO_DB_PASSWORD=uma-senha-forte-aqui
 ```
 
-> O mesmo valor é usado pelo serviço `server` (para conectar) e pelo `db` (para criar o usuário). Mantenha o `.env` fora do versionamento.
+> O mesmo valor é usado pelo serviço `server` (para conectar) e pelo `db` (para criar o usuário). Só na alternativa via SSH (fim da Parte 3) ele fica num arquivo `.env` ao lado do `forgejo.yml`, fora do versionamento.
 
 ## Parte 3: A Stack (Docker Compose)
 
@@ -46,19 +45,18 @@ O arquivo [`forgejo.yml`](../assets/stacks/forgejo.yml) define **três serviços
 
 > ℹ️ **Por que DOOD e não Docker-in-Docker?** O dind isola melhor (os jobs não enxergam o Docker do host), mas coloca cada job numa rede própria, de onde ele **não resolve** o nome interno `forgejo` nem alcança o host em VPS com firewall restritivo. O DOOD é o que funciona quando a instância não tem um endereço público que ela mesma consiga acessar (caso típico de `.onion` ou VPS Oracle). O racional completo está na [Parte 5.9](#59--migrei-pro-onion-ou-troquei-o-domínio-e-o-ci-parou), e o modo dind continua documentado na [Parte 5.6](#56--modos-de-execução-todas-as-possibilidades).
 
-Suba a stack (via `docker compose` ou colando o YAML como **Stack** no Portainer):
+Suba a stack pelo Portainer:
 
-```bash
-docker compose -f forgejo.yml up -d
-```
+1. Confirme que as pastas da [Parte 1](#parte-1-preparar-as-pastas-de-dados) já existem. Elas são criadas via SSH **antes** da Stack: se o Portainer subir primeiro, o Docker cria `/srv/forgejo/*` como `root` e o runner (uid 1000) não consegue gravar o config.
+2. Portainer → **Stacks** → **Add Stack**.
+3. **Nome:** `forgejo`.
+4. Cole o YAML de [`assets/stacks/forgejo.yml`](../assets/stacks/forgejo.yml) no **Web editor**.
+5. Na aba **Environment variables**, adicione `FORGEJO_DB_PASSWORD` (Parte 2).
+6. **Deploy the stack**.
 
-> Numa primeira subida só pra configurar o Git, os serviços `server` e `db` já bastam. O `runner` só roda de verdade depois da Parte 5 — o que é esperado.
+> O Portainer sobe os **3 serviços de uma vez**. Numa primeira subida só pra configurar o Git, `server` e `db` já bastam: o `runner` fica reiniciando até você gravar o `runner-config.yml` (Parte 5, via SSH), o que é esperado. Assim que o arquivo existir ele pega sozinho, **sem atualizar a Stack**.
 
-> **Usando Portainer (Stack)?** Três coisas mudam em relação ao shell:
->
-> 1. **Crie as pastas da Parte 1 via SSH _antes_ de criar a Stack.** Se o Portainer subir primeiro, o Docker cria `/srv/forgejo/*` como `root` e o runner (uid 1000) não consegue gravar o config.
-> 2. **Não crie o arquivo `.env`** — adicione `FORGEJO_DB_PASSWORD` na seção **Environment variables** do editor da Stack.
-> 3. O Portainer sobe os **3 serviços de uma vez**; o `runner` fica reiniciando até você gravar o `runner-config.yml` (Parte 5, ainda via SSH). Assim que o arquivo existir, ele pega sozinho — **nem precisa atualizar a Stack**.
+> **Alternativa via SSH:** com o `forgejo.yml` e um `.env` contendo `FORGEJO_DB_PASSWORD` na mesma pasta, `docker compose -f forgejo.yml up -d` sobe a mesma stack. Use um caminho ou o outro: a stack criada pelo shell não aparece como editável no Portainer.
 
 ## Parte 4: Configuração Inicial
 
@@ -146,10 +144,10 @@ server:
 
 ### 5.4 — Subir junto da stack
 
-Com o `runner-config.yml` no lugar:
+Com o `runner-config.yml` no lugar, o `runner` que estava reiniciando à espera dele sobe sozinho na próxima tentativa, sem redeploy da Stack. Para não esperar:
 
 ```bash
-docker compose -f forgejo.yml up -d
+sudo docker restart forgejo-runner
 ```
 
 O `runner` fala com o **Docker do host** pelo socket montado (`/var/run/docker.sock`) e cria os containers de job na `forgejo-net`. Confirme na UI (_Settings → Actions → Runners_) que ele aparece como **Idle**.

@@ -213,8 +213,10 @@ o mesmo pedido vira o `302` esperado.
 
 ### Detalhes que economizam depuração
 
-- **`encode` no bloco global vale para todos os sites.** Repetir dentro de cada
-  `http://app.dominio { }` só é preciso se aquele site quiser política diferente.
+- **Site sem `import comprimir` não comprime.** Não há herança do bloco global
+  (ver o aviso acima), então um site novo nasce sem compressão até receber a
+  linha. Um site que queira política diferente (SSE, abaixo) usa o próprio
+  `encode` no lugar do snippet.
 - **Atrás do Cloudflare Tunnel a compressão do Caddy continua valendo**, e é ela
   que decide o tamanho no trecho `cloudflared` para `caddy`. A borda do
   Cloudflare pode recomprimir, mas isso não substitui: o salto interno paga
