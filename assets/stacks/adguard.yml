@@ -12,10 +12,18 @@ services:
       - /srv/adguard/work:/opt/adguardhome/work
       - /srv/adguard/conf:/opt/adguardhome/conf
       - /etc/localtime:/etc/localtime:ro
-    network_mode: bridge
+    networks:
+      - adguard-net
     ports:
       - "53:53/tcp"       # DNS plain (TCP)
       - "53:53/udp"       # DNS plain (UDP)
       - "8084:80/tcp"     # Painel Admin + DoH endpoint (/dns-query)
       - "3004:3000/tcp"   # Setup Wizard (somente na primeira execução)
     hostname: adguardhome
+
+# Rede com nome próprio: sem o name:, o Compose cria "adguard_default", e na rede
+# bridge padrão do Docker o container alcança os das outras stacks pelo IP.
+networks:
+  adguard-net:
+    name: adguard-net
+    driver: bridge

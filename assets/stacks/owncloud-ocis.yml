@@ -28,7 +28,15 @@ services:
       - /srv/ocis/config:/etc/ocis
       # Dados dos usuários (arquivos, metadata, search index)
       - /srv/ocis/data:/var/lib/ocis
-    network_mode: bridge
+    networks:
+      - ocis-net
     ports:
       - "9200:9200"
     hostname: ocis
+
+# Rede com nome próprio: sem o name:, o Compose cria "ocis_default", e na rede
+# bridge padrão do Docker o container alcança os das outras stacks pelo IP.
+networks:
+  ocis-net:
+    name: ocis-net
+    driver: bridge
