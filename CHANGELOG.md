@@ -16,6 +16,7 @@ As versões seguem o esquema **CalVer `YYYY.M.R`** (ano, mês sem zero à esquer
 
 ### 🔧 Changed
 
+- **O monitor.selflabs.org abriu os arquivos do app instalável no Caddy** ([`assets/configs/caddy-Caddyfile`](./assets/configs/caddy-Caddyfile)): `/manifest.webmanifest`, `/icones/*` e `/favicon.ico` passam sem o Authelia, porque o navegador busca o manifest sem cookie e o Android monta o ícone do app do lado do Google. Não trazem dado de cliente.
 - **AdGuard, FrankMD, OpenList e ownCloud oCIS saíram da rede `bridge` padrão do Docker** ([`assets/stacks/adguard.yml`](./assets/stacks/adguard.yml), [`frankmd.yml`](./assets/stacks/frankmd.yml), [`openlist.yml`](./assets/stacks/openlist.yml), [`owncloud-ocis.yml`](./assets/stacks/owncloud-ocis.yml)): cada um ganhou a própria rede com nome (`adguard-net`, `frankmd-net`, `openlist-net`, `ocis-net`). Na `bridge` padrão, todo container de outra stack que também estivesse nela alcançava esses pelo IP; no homelab eram sete juntos (AdGuard, FrankMD, OpenList, oCIS, CUPS, Vaultwarden e o Portainer). As portas publicadas não mudam, então quem acessa pelo IP do servidor ou pelo Cloudflare Tunnel não percebe nada. Num servidor que já roda essas stacks, falta um redeploy de cada.
 - **Primeiro login do Portainer** ([`docs/portainer-debian.md`](./docs/portainer-debian.md)): o token de setup que a tela pede agora está documentado.
 - **O bloco do ALFERES no Caddyfile perdeu o rótulo "(P1)"**, no espelho e no servidor: o sistema vai além do módulo P1.
