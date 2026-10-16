@@ -25,6 +25,10 @@ As versões seguem o esquema **CalVer `YYYY.M.R`** (ano, mês sem zero à esquer
 
 - **O limite de requisições do DoH do AdGuard ganhou seção no guia** ([`docs/adguard.md`](./docs/adguard.md), Parte 8.3): a regra existia só no painel da Cloudflare. Desde 15/10/2026 ela também cobre os sinais do painel de monitoramento da Hubb (`/api/sinal/*`), porque o plano Free tem uma regra só por zona; o guia mostra a expressão inteira e pede para manter as duas metades.
 
+### 🗑️ Removed
+
+- **A Parte 4 do guia do Portainer, o Edge Agent assíncrono** ([`docs/portainer-debian.md`](./docs/portainer-debian.md)), com a porta `8000` do `docker run`, que só servia ao agente. Ela juntava vários hosts num Portainer central, e quem enxerga os servidores dos clientes da Hubb agora é o painel de monitoramento, que já mostra máquina, containers, serviços e backups de todos. Um servidor que já roda o agente continua funcionando; para tirar, `docker stop portainer_edge_agent && docker rm portainer_edge_agent` e remover o ambiente no Portainer central.
+
 ### 🐛 Fixed
 
 - **README e convenções descreviam outra stack do Forgejo**: a linha do índice falava em Docker-in-Docker, mas o runner usa o Docker do host (DOOD) desde a 15.0.6, e o `CLAUDE.md` citava a tag `:15.0.2` como exemplo de versão fixa, quando a stack fixa a `:15.0.6` (LTS).
