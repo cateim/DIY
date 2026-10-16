@@ -1,0 +1,42 @@
+services:
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - TZ=America/Sao_Paulo
+      # Quanto tempo o login vale. Sem esta linha vale o padrão "session", que desloga
+      # toda vez que o navegador fecha.
+      - DOZZLE_AUTH_TTL=48h
+    volumes:
+      # O Docker do host: é daqui que saem a lista, os logs e as métricas. O ":ro" não
+      # limita a API do Docker (a documentação do Dozzle avisa); quem limita é o login
+      # e deixar ações e shell desligados (Parte 4 do guia).
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Configurações da tela (login, hosts, atualizações), usuários, alertas e a chave
+      # das sessões. Sem este volume a tela avisa que /data não está montado e não
+      # salva nada, nem o login.
+      - /srv/dozzle/data:/data
+      # Carga e tempo ligado do host, no cartão do topo da tela.
+      - /proc:/host/proc:ro
+    networks:
+      - dozzle-net
+    ports:
+      - "8086:8080"
+    hostname: dozzle
+    # A imagem não declara HEALTHCHECK. Este é o comando da documentação do Dozzle; o
+    # intervalo dela é de 3 s, aqui fica em 30 s.
+    healthcheck:
+      test: ["CMD", "/dozzle", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# Rede com nome próprio: sem o name:, o Compose cria "dozzle_default".
+networks:
+  dozzle-net:
+    name: dozzle-net
+    driver: bridge

@@ -52,8 +52,10 @@ Match the existing stacks (`assets/stacks/forgejo.yml`, `firefly.yml`, `n8n.yml`
 - Persist data with **bind mounts under `/srv/<service>/…`** (never named volumes).
 - Secrets via `${VAR}` interpolation — **never hardcode** passwords/keys/tokens.
 - `TZ=America/Sao_Paulo` (and `GENERIC_TIMEZONE` for apps that schedule/cron).
-- Multi-service stacks use a dedicated named bridge network `<service>-net`; single-container
-  stacks may use `network_mode: bridge`.
+- Every stack on a bridge network declares it with an explicit `name:` (`<service>-net`),
+  single-container stacks included, so Docker and Portainer never create `<stack>_default`.
+  Services in `network_mode: host` declare nothing. Converting a stack that already ran on the
+  default network: redeploy, then `sudo docker network rm <stack>_default`.
 - When a service depends on a database, give the DB a `healthcheck` (e.g. `pg_isready`) and gate
   the app with `depends_on: { <db>: { condition: service_healthy } }`.
 - **Image tags:** most stacks track a rolling tag (`:latest` / `:stable`); to update, use Portainer's
