@@ -16,8 +16,16 @@ services:
       - /srv/midia:/midia
       # Para adicionar outra pasta, precisamos avisar o Docker primeiro
       # - /local/outra_pasta:/outra_pasta
-    network_mode: bridge
+    networks:
+      - openlist-net
     ports:
       - "5244:5244"   # Web UI + WebDAV + API
       - "5245:5245"   # HTTPS interno (opcional, usado se TLS for habilitado no container)
     hostname: openlist
+
+# Rede com nome próprio: sem o name:, o Compose cria "openlist_default", e na rede
+# bridge padrão do Docker o container alcança os das outras stacks pelo IP.
+networks:
+  openlist-net:
+    name: openlist-net
+    driver: bridge
