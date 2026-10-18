@@ -7,6 +7,8 @@ As versões seguem o esquema **CalVer `YYYY.M.R`** (ano, mês sem zero à esquer
 
 ## [Unreleased]
 
+## [2026.10.1] - 2026-10-18
+
 ### ✨ Added
 
 - **Guia do Dozzle** ([`docs/dozzle.md`](./docs/dozzle.md), stack em [`assets/stacks/dozzle.yml`](./assets/stacks/dozzle.yml)): o painel de logs, uso e saúde dos containers, na v11. Cobre a pasta `/data`, sem a qual a tela de Configurações não salva nada (nem o login), o login próprio pela tela ou por `users.yml` com papéis, o login pelo Authelia com os grupos `dozzle_*`, ações e shell desligados por padrão, a migração de um Dozzle antigo sem `/data`, as atualizações e alertas da v11, o healthcheck da documentação, conferido no Dozzle 11.3.2 do homelab em 15/10/2026, e a rede com nome próprio (`dozzle-net`), com a remoção da `dozzle_default` que a stack antiga deixou. O Dozzle do homelab já rodava, mas nenhum guia o descrevia.
@@ -187,7 +189,8 @@ As versões seguem o esquema **CalVer `YYYY.M.R`** (ano, mês sem zero à esquer
 > [!NOTE]
 > Todas as versões até `2026.9.1` foram **reconstruídas a partir do histórico do git**: o repositório nunca teve tags nem campo de versão. Cada versão fecha no último commit da fase, e a data é a desse commit. Os links de comparação abaixo só funcionam depois que as tags existirem.
 
-[Unreleased]: https://github.com/cateim/DIY/compare/v2026.9.1...HEAD
+[Unreleased]: https://github.com/cateim/DIY/compare/v2026.10.1...HEAD
+[2026.10.1]: https://github.com/cateim/DIY/compare/v2026.9.1...v2026.10.1
 [2026.9.1]: https://github.com/cateim/DIY/compare/v2026.8.1...v2026.9.1
 [2026.8.1]: https://github.com/cateim/DIY/compare/v2026.7.1...v2026.8.1
 [2026.7.1]: https://github.com/cateim/DIY/compare/v2026.6.1...v2026.7.1
