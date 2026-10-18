@@ -7,6 +7,11 @@ As versões seguem o esquema **CalVer `YYYY.M.R`** (ano, mês sem zero à esquer
 
 ## [Unreleased]
 
+### 🔧 Changed
+
+- **O login do Authelia sem app de origem leva para a landing `https://selflabs.org`** ([`assets/configs/authelia.yml`](./assets/configs/authelia.yml), `default_redirection_url`), e não mais para o `pdf.selflabs.org`, que era só o primeiro app protegido.
+- **A sessão do Authelia dura mais** ([`assets/configs/authelia.yml`](./assets/configs/authelia.yml), [`docs/authelia.md`](./docs/authelia.md), Parte 6): `inactivity` de 5 minutos para 1 hora e `expiration` de 1 para 12 horas. Com os prazos antigos, o painel do `monitor.selflabs.org` deslogava sempre que a aba ficava parada. O cookie é um só para todos os `*.selflabs.org`, então o prazo novo vale para todos os apps; o guia explica o "Lembrar-me" (1 mês) para quem deixa o painel aberto o dia todo.
+
 ## [2026.10.1] - 2026-10-18
 
 ### ✨ Added
