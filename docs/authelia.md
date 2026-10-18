@@ -103,6 +103,11 @@ O notifier do Authelia usa **SMTP** (Resend) — é o que entrega os **links de 
 2. Sem sessão válida, o Authelia responde **302** para `https://auth.selflabs.org`; você loga com as credenciais do lldap.
 3. No sucesso, grava o cookie `authelia_session` no domínio-pai `selflabs.org`; o Caddy recebe 2xx, copia `Remote-User/Groups/Name/Email` e faz o proxy para o app.
 4. Como o cookie é do domínio-pai, **um login cobre todos os subdomínios** (`pdf`, `users`, `auth`).
+5. Quem abre `https://auth.selflabs.org` direto (sem vir de um app) cai, depois do login, no `default_redirection_url`: a landing `https://selflabs.org`.
+
+**Tempo de sessão** (bloco `session.cookies`): `inactivity: 1h` (tempo parado sem nenhuma requisição) e `expiration: 12h` (teto absoluto, mesmo com uso). Valem para **todos** os apps, porque o cookie é um só; não existe prazo próprio por subdomínio. Para um painel que fica aberto o dia todo (como o `monitor.`), marque **Lembrar-me** no login: a sessão passa a durar o `remember_me` (1 mês) e deixa de cair por inatividade.
+
+> ⚠️ Nenhum desses prazos sobrevive a um restart do Authelia: sem Redis, a sessão vive na memória.
 
 ## Parte 6.1: Marca e tema do portal
 

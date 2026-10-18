@@ -90,15 +90,21 @@ access_control:
 
 # Sessão em memória (SEM Redis). O cookie no domínio-pai selflabs.org faz um
 # login cobrir todos os *.selflabs.org (SSO). secret vem de AUTHELIA_SESSION_SECRET.
+# Os tempos valem para TODOS os apps: o cookie é um só, então não dá para dar ao
+# monitor um prazo diferente do resto. inactivity é o tempo parado (aba aberta sem
+# navegar) e expiration o teto absoluto; com 5m/1h o painel do monitor deslogava
+# o tempo todo. Marcar "Lembrar-me" no login troca os dois pelo remember_me (1 mês
+# sem pedir senha nem 2FA), mas um restart do Authelia derruba tudo de qualquer
+# jeito: a sessão vive na memória.
 session:
   cookies:
     - domain: 'selflabs.org'
       authelia_url: 'https://auth.selflabs.org'
-      default_redirection_url: 'https://pdf.selflabs.org'
+      default_redirection_url: 'https://selflabs.org'
       name: 'authelia_session'
       same_site: 'lax'
-      inactivity: '5m'
-      expiration: '1h'
+      inactivity: '1h'
+      expiration: '12h'
       remember_me: '1M'
 
 # Storage local SQLite (SEM Postgres). encryption_key vem de
