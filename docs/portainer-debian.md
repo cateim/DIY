@@ -13,8 +13,8 @@ Siga estes passos no terminal do seu servidor Debian.
 Vamos garantir que o sistema está atualizado e tem os certificados necessários.
 
 ```bash
-sudo apt-get update
-sudo apt-get install ca-certificates curl gnupg
+sudo apt update
+sudo apt install ca-certificates curl gnupg
 ```
 
 ### 2. Adicionar o Repositório Oficial do Docker
@@ -42,10 +42,10 @@ Com o repositório configurado, atualizamos o `apt` e instalamos a versão mais 
 
 ```bash
 # Atualiza a lista de pacotes após adicionar o repo
-sudo apt-get update
+sudo apt update
 
 # Instala os pacotes
-sudo apt-get install \
+sudo apt install \
   docker-ce \
   docker-ce-cli \
   containerd.io \
@@ -138,8 +138,8 @@ Se você seguiu versões anteriores deste guia e havia "travado" a versão do Do
 sudo apt-mark unhold docker-ce docker-ce-cli
 
 # Atualiza para a versão mais recente
-sudo apt-get update
-sudo apt-get upgrade docker-ce docker-ce-cli
+sudo apt update
+sudo apt upgrade docker-ce docker-ce-cli
 ```
 
 ## Anexo B: Instalar e Travar uma Versão Específica do Docker (Troubleshooting)
@@ -152,13 +152,13 @@ Atualizamos o `apt` e instalamos a versão exata do Docker:
 
 ```bash
 # Atualiza a lista de pacotes
-sudo apt-get update
+sudo apt update
 
 # Define a string da versão exata (Exemplo baseado no Trixie/Debian 13)
 VERSION_STRING=5:28.5.2-1~debian.13~trixie
 
 # Instala os pacotes com a versão "pinada"
-sudo apt-get install \
+sudo apt install \
   docker-ce=$VERSION_STRING \
   docker-ce-cli=$VERSION_STRING \
   containerd.io \
