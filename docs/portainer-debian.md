@@ -14,7 +14,7 @@ Vamos garantir que o sistema está atualizado e tem os certificados necessários
 
 ```bash
 sudo apt update
-sudo apt install ca-certificates curl gnupg
+sudo apt install ca-certificates curl gnupg -y
 ```
 
 ### 2. Adicionar o Repositório Oficial do Docker
