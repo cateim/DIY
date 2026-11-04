@@ -35,6 +35,8 @@ Crie uma nova Stack no Portainer chamada `ai-memory`:
 
 _Nota: No YAML, troque `192.168.x.x` (em `AI_MEMORY_ALLOWED_HOSTS`) pelo IP real do Orange Pi na sua LAN. Esse `AI_MEMORY_ALLOWED_HOSTS` protege contra DNS rebinding em binds que não são loopback._
 
+_Nota: `AI_MEMORY_INGEST__RECORD_TOOL_NAMES=true` faz o servidor gravar o nome de cada ferramenta na observação: `tool unknown: ToolSearch` em vez de só `tool unknown`, e nas chamadas de `Skill` e `Agent` do Claude Code também a skill ou o tipo de subagente. Só entram identificadores, nunca os argumentos (comando, prompt, caminho). Sem ela, as ferramentas fora do MCP chegam sem nome. Vale só para as observações novas._
+
 **Environment Variables no Portainer:**
 
 - `AI_MEMORY_AUTH_TOKEN`: Senha forte gerada (ex: via Bitwarden).

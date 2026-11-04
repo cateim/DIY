@@ -5,3 +5,8 @@ sign.key
 docs/superpowers/*
 actual_import/*
 graphify-out/
+
+# ---- Controle de trabalho ----
+# Rascunho de trabalho, nao documentacao: muda a cada sessao e cita o que
+# ainda esta quebrado.
+CHECKLIST.md

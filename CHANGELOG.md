@@ -15,6 +15,11 @@ As versões seguem o esquema **CalVer `YYYY.M.R`** (ano, mês sem zero à esquer
 
 - **O login do Authelia sem app de origem leva para a landing `https://selflabs.org`** ([`assets/configs/authelia.yml`](./assets/configs/authelia.yml), `default_redirection_url`), e não mais para o `pdf.selflabs.org`, que era só o primeiro app protegido.
 - **A sessão do Authelia dura mais** ([`assets/configs/authelia.yml`](./assets/configs/authelia.yml), [`docs/authelia.md`](./docs/authelia.md), Parte 6): `inactivity` de 5 minutos para 1 hora e `expiration` de 1 para 12 horas. Com os prazos antigos, o painel do `monitor.selflabs.org` deslogava sempre que a aba ficava parada. O cookie é um só para todos os `*.selflabs.org`, então o prazo novo vale para todos os apps; o guia explica o "Lembrar-me" (1 mês) para quem deixa o painel aberto o dia todo.
+- **O ai-memory grava o nome de cada ferramenta nas observações** ([`assets/stacks/ai-memory.yml`](./assets/stacks/ai-memory.yml), [`docs/ai-memory.md`](./docs/ai-memory.md)): `AI_MEMORY_INGEST__RECORD_TOOL_NAMES=true`. Sem ela, as chamadas chegavam só como `tool non-file` ou `tool unknown`, sem dizer qual ferramenta rodou; agora o título vira `tool non-file: Bash` ou `tool unknown: ToolSearch`, e as chamadas de `Skill` e `Agent` do Claude Code guardam também a skill ou o tipo de subagente. Só entram identificadores, nunca argumentos. Aplicado no Orange Pi em 03/11/2026.
+
+### 🐛 Fixed
+
+- **A cópia da stack do ai-memory dava outro nome à rede** ([`assets/stacks/ai-memory.yml`](./assets/stacks/ai-memory.yml)): o `name:` era `ai-memory_net`, e o servidor usa `ai-memory-net`. Um deploy feito a partir do repositório criaria outra rede. Agora o `name:` é `ai-memory-net` e a chave do Compose continua `ai-memory_net`, como no servidor; trocar a chave obrigaria a recriar a rede.
 
 ## [2026.10.1] - 2026-10-18
 

@@ -11,6 +11,7 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - AI_MEMORY_EMBEDDING_PROVIDER=gemini
       - AI_MEMORY_ALLOWED_HOSTS=localhost,127.0.0.1,192.168.x.x
+      - AI_MEMORY_INGEST__RECORD_TOOL_NAMES=true
     volumes:
       - /srv/ai-memory/data:/data
     networks:
@@ -26,5 +27,5 @@ services:
 
 networks:
   ai-memory_net:
-    name: ai-memory_net
+    name: ai-memory-net
     driver: bridge
