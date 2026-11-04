@@ -7,6 +7,10 @@ As versões seguem o esquema **CalVer `YYYY.M.R`** (ano, mês sem zero à esquer
 
 ## [Unreleased]
 
+### ✨ Added
+
+- **Guia do Portainer Agent** ([`docs/portainer-agent.md`](./docs/portainer-agent.md)): liga outra máquina com Docker ao Portainer central pelo IP do Tailscale, sem instalar um segundo Portainer nela. Cobre o bloco do `ufw-docker` do Omarchy, que libera qualquer rede privada e bloqueia o Tailscale, as duas regras que deixam só o servidor entrar na porta 9001 e a ordem delas (um `allow` depois do `deny` dá `context deadline exceeded`), como fica o `/srv` (o agent não guarda nada, o compose fica no servidor e os dados em `/srv/<projeto>` da máquina) e a atualização manual do agent quando o servidor muda de versão. Aplicado no notebook `alienware` em 03/11/2026.
+
 ### 🔧 Changed
 
 - **O login do Authelia sem app de origem leva para a landing `https://selflabs.org`** ([`assets/configs/authelia.yml`](./assets/configs/authelia.yml), `default_redirection_url`), e não mais para o `pdf.selflabs.org`, que era só o primeiro app protegido.
