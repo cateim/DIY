@@ -1,0 +1,78 @@
+# Pacotes instalados depois do Omarchy, dos repositórios core/extra/multilib e do
+# repositório do Omarchy (google-chrome, spotify e rustdesk vêm dele).
+# Levantado do pacman.log em 03/11/2026: só os explícitos fora das listas do Omarchy.
+#
+# Instalar:  omarchy pkg add $(grep -vE '^\s*(#|$)' assets/omarchy/packages.txt | cut -d' ' -f1)
+# AUR em packages-aur.txt; flatpak em flatpak.txt.
+# Ficam de fora de propósito (têm passo próprio no docs/omarchy.md): tailscale
+# (omarchy install service tailscale), voxtype-bin (convite do Omarchy) e
+# mkinitcpio-netconf/tinyssh/utils (scripts/ssh-no-boot.sh).
+
+# ---- Navegador, senhas e comunicação ----
+google-chrome
+bitwarden
+bitwarden-cli
+telegram-desktop
+spotify
+kdeconnect
+
+# ---- Acesso remoto ----
+wayvnc
+cloudflared
+rustdesk
+freerdp
+remmina
+
+# ---- Sessão Xfce, instalada junto com o Chrome Remote Desktop (02/11/2026) ----
+thunar
+xfce4-panel
+xfce4-session
+xfce4-settings
+xfce4-terminal
+xfdesktop
+xfwm4
+
+# ---- Desenvolvimento (Node via mise; ESP-IDF/Jade pede cmake, ninja, ccache, dfu-util, gperf e swig) ----
+bun
+go
+gopls
+npm
+python-pipx
+rustup
+uv
+cmake
+ninja
+ccache
+dfu-util
+gperf
+swig
+git-lfs
+
+# ---- Arquivos, disco e sincronização ----
+7zip
+age
+rclone
+fuse2
+nvme-cli
+smartmontools
+filezilla
+qbittorrent
+flatpak
+
+# ---- Android ----
+android-tools
+android-udev
+scrcpy
+
+# ---- Mídia, design e 3D ----
+alsa-tools
+mkvtoolnix-gui
+impression
+inkscape
+freecad
+
+# ---- Outros ----
+openbsd-netcat
+solaar
+torbrowser-launcher
+zenity

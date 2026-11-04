@@ -1,0 +1,12 @@
+[Unit]
+Description=wayvnc: tela do Hyprland so em 127.0.0.1, para o Cloudflare Access
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/wayvnc --output=eDP-1 127.0.0.1 5900
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=graphical-session.target

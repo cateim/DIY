@@ -1,0 +1,66 @@
+# Personalizações do Omarchy no notebook alienware que o DIY guarda.
+#
+# Uma entrada por linha: "~/..." vai para home/, "/..." vai para system/.
+# Pasta termina em "/" e é copiada inteira (menos CHECKLIST.md e *.bak.*).
+# Só entra aqui o que foi mudado de propósito. Estado de app (perfis do
+# navegador, caches) e segredos (rclone.conf, chaves, tokens, senhas) ficam fora.
+# Mudou ou removeu alguma coisa? Atualize esta lista e rode export.sh.
+
+# ---- Hyprland ----
+~/.config/hypr/bindings.lua
+~/.config/hypr/hyprland.lua
+~/.config/hypr/input.lua
+~/.config/hypr/monitors.lua
+
+# ---- Shell do Omarchy (barra, ociosidade, fonte, agente padrão, plugins) ----
+~/.config/omarchy/shell.json
+~/.config/omarchy/shell.toml
+~/.config/omarchy/defaults/agent
+~/.config/omarchy/themed/chromium.theme.tpl
+~/.config/omarchy/plugins/cateim.keyboard-layout/
+~/.config/omarchy/plugins/cateim.window-switcher/
+
+# ---- Terminal e prompt ----
+~/.bashrc
+~/.config/starship.toml
+~/.config/kitty/kitty.conf
+~/.config/blesh/init.sh
+~/.config/eza/theme.yml
+
+# ---- Git ----
+~/.gitconfig
+~/.config/git/config
+
+# ---- Navegadores, apps e pastas ----
+~/.config/chromium-flags.conf
+~/.config/chrome-flags.conf
+~/.config/antigravity-ide-flags.conf
+~/.config/mimeapps.list
+~/.config/user-dirs.dirs
+~/.config/gtk-3.0/bookmarks
+~/.config/mise/config.toml
+~/.config/autostart/bitwarden.desktop
+~/.local/share/applications/sideswap.desktop
+
+# ---- Acesso remoto (wayvnc) ----
+~/.config/wayvnc/config
+~/.config/systemd/user/wayvnc.service
+~/.local/bin/vnc-trocar-tela
+
+# ---- Google Drive (drive-sync) ----
+~/.local/bin/drive-sync.sh
+~/.config/systemd/user/drive-sync.service
+~/.config/systemd/user/drive-sync.timer
+
+# ---- Sistema (/etc): install.sh --system, com sudo ----
+/etc/limine-entry-tool.d/alienware-display.conf
+/etc/systemd/system/cloudflared.service
+/etc/systemd/system/home-emergencia.service
+/etc/systemd/system/rustdesk.service.d/sessao.conf
+/etc/udev/rules.d/20-hw1.rules
+/etc/udev/rules.d/51-coinkite.rules
+/etc/udev/rules.d/51-trezor.rules
+/etc/udev/rules.d/51-usb-keepkey.rules
+/etc/udev/rules.d/53-hid-bitbox02.rules
+/etc/udev/rules.d/54-hid-bitbox02.rules
+/etc/udev/rules.d/55-usb-jade.rules

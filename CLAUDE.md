@@ -19,6 +19,11 @@ matching the existing guides, not for software-engineering ceremony.
 - `assets/stacks/<service>.yml` — the Docker Compose stack referenced by the guide.
 - `assets/configs/<service>-*.{yml,js,…}` — copy-paste config templates referenced by guides.
 - `assets/datasheets/` — hardware datasheets (PDF).
+- `assets/omarchy/`: the mirror of every customization of the Omarchy notebook, documented in
+  `docs/omarchy.md`. `files.txt` lists the tracked paths; `export.sh` copies them from the system
+  into `home/` and `system/`, swapping personal values for `<<NAME>>` placeholders read from
+  `~/.config/diy-omarchy/private.env` and refusing to finish on any secret; `install.sh` restores
+  them (`--dry-run`, `--system`). Never edit `home/` or `system/` by hand: `export.sh` rebuilds them.
 - `README.md` — the project index table; every guide has a row.
 - `CHANGELOG.md`: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/) with CalVer
   (`YYYY.M.R`), in Portuguese like the guides. A notable change lands in `[Unreleased]`
@@ -103,6 +108,19 @@ Match the existing stacks (`assets/stacks/forgejo.yml`, `firefly.yml`, `n8n.yml`
 2. `docs/<service>.md` — the guide (Portainer-first).
 3. `README.md` — add a row to the Projetos table, alphabetical by name.
 4. Configs (if any) → `assets/configs/<service>-*`.
+
+## Omarchy notebook changes (standing rule)
+
+Any customization added, changed or removed on the notebook (`~/.config`, `~/.local/bin`, systemd
+units, `/etc`, packages) is mirrored here in the same session, as `docs/omarchy.md` Parte 6 says:
+
+1. Change the real file on the system, never the mirror.
+2. New or removed file: edit `assets/omarchy/files.txt`. Package: the matching list
+   (`packages.txt`, `packages-aur.txt`, `flatpak.txt`).
+3. Run `assets/omarchy/export.sh`. If it flags a secret or personal value, put it in
+   `private.env` (and in `PLACEHOLDER_KEYS` for a new key); never commit around the check.
+4. Update the matching table in `docs/omarchy.md` and `[Unreleased]` in `CHANGELOG.md`.
+5. Hand the user the commit message (scope `omarchy`); this repo is public.
 
 ## Commits
 

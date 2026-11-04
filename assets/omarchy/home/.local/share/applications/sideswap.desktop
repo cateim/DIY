@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=SideSwap
+Comment=Liquid wallet and swaps (AppImage in ~/Applications)
+Exec=<<HOME>>/Applications/SideSwap.AppImage
+Icon=sideswap
+Terminal=false
+Categories=Utility;

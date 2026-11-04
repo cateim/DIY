@@ -10,3 +10,8 @@ graphify-out/
 # Rascunho de trabalho, nao documentacao: muda a cada sessao e cita o que
 # ainda esta quebrado.
 CHECKLIST.md
+
+# ---- Omarchy ----
+# Valores pessoais e segredos do assets/omarchy (senha do VNC, chaves SSH, .onion).
+# O modelo commitado é o private.env.example; o arquivo real mora em ~/.config/diy-omarchy.
+private.env

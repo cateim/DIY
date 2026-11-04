@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Troca o monitor que o wayvnc transmite (VNC no navegador, remote.<<DOMAIN>>)
+# e avisa qual ficou. Atalho: Ctrl + Shift + F12, em ~/.config/hypr/bindings.lua.
+# A troca dura até o wayvnc reiniciar: o serviço sobe sempre com --output=eDP-1.
+set -euo pipefail
+
+if ! wayvncctl output-cycle >/dev/null 2>&1; then
+  notify-send -a VNC "VNC" "O wayvnc não respondeu (systemctl --user status wayvnc)"
+  exit 1
+fi
+
+atual="$(wayvncctl output-list | sed -n 's/^\* \([^:]*\):.*/\1/p')"
+case "$atual" in
+  eDP-1) nome="tela do notebook" ;;
+  HDMI-A-4) nome="LG" ;;
+  *) nome="$atual" ;;
+esac
+notify-send -a VNC "VNC" "Mostrando: $nome ($atual)"
