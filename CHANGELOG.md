@@ -21,6 +21,10 @@ As versões seguem o esquema **CalVer `YYYY.M.R`** (ano, mês sem zero à esquer
 
 - **A cópia da stack do ai-memory dava outro nome à rede** ([`assets/stacks/ai-memory.yml`](./assets/stacks/ai-memory.yml)): o `name:` era `ai-memory_net`, e o servidor usa `ai-memory-net`. Um deploy feito a partir do repositório criaria outra rede. Agora o `name:` é `ai-memory-net` e a chave do Compose continua `ai-memory_net`, como no servidor; trocar a chave obrigaria a recriar a rede.
 
+### 🔐 Security
+
+- **O ai-memory fica fixo na 3.3.3** ([`assets/stacks/ai-memory.yml`](./assets/stacks/ai-memory.yml), [`docs/ai-memory.md`](./docs/ai-memory.md)): a imagem deixa de seguir `latest`. A 3.3.3 para de gravar em claro senhas e chaves que um Bash do Claude Code imprime, como `"db_password": "..."`, `Authorization: Basic` ou uma chave de `.env` depois da primeira linha ([akitaonrails/ai-memory#1963](https://github.com/akitaonrails/ai-memory/issues/1963)). Com `latest`, o servidor continuava na 3.3.2, porque um redeploy comum do Portainer não baixa a imagem de novo. O guia agora explica como atualizar com a tag fixa e, no notebook, pelo AUR. O que já tinha sido gravado continua como estava. Aplicado no Orange Pi em 03/11/2026.
+
 ## [2026.10.1] - 2026-10-18
 
 ### ✨ Added

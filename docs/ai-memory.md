@@ -102,44 +102,45 @@ Abra o terminal no Antigravity IDE, inicie o `claude` e envie o prompt:
 
 ## 🔄 4. Atualização (Update)
 
-O sistema tem **duas metades** que precisam ser atualizadas e mantidas na **mesma versão**: o **Cérebro** (imagem Docker no Orange Pi) e o **Espião** (CLI Rust no Windows). Ao atualizar um, atualize o outro.
+O sistema tem **duas metades** que precisam ser atualizadas e mantidas na **mesma versão**: o **Cérebro** (imagem Docker no Orange Pi) e o **Espião** (CLI `ai-memory` no notebook). Ao atualizar um, atualize o outro.
 
 ### 4.1. Atualizar o Cérebro (Orange Pi / Portainer)
 
-A stack usa `akitaonrails/ai-memory:latest`. O problema clássico do Portainer: num **Redeploy** comum ele **NÃO** rebaixa a imagem `:latest` — reusa o cache local. Foi exatamente por isso que o redeploy "não atualizava nada".
+A stack fixa a versão da imagem (`akitaonrails/ai-memory:3.3.3`), a mesma do Espião. Com a tag fixa, o Portainer baixa a imagem nova assim que a tag muda, e a versão que roda é sempre a que está escrita no YAML.
 
-**Opção A — Re-pull no Portainer (rápido):**
+Para atualizar:
 
-1. Portainer → **Stacks** → `ai-memory`.
-2. Clique em **Editor** (ou **Update the stack**).
-3. **Marque a opção `Re-pull image and redeploy`** (em alguns temas aparece como _"Pull latest image version"_).
-4. Clique em **Update the stack**.
+1. Veja a versão nova em [Docker Hub → Tags](https://hub.docker.com/r/akitaonrails/ai-memory/tags) e leia as notas dela no [CHANGELOG do projeto](https://github.com/akitaonrails/ai-memory/blob/main/CHANGELOG.md).
+2. Portainer → **Stacks** → `ai-memory` → **Editor**: troque a tag (ex.: `3.3.3` → `3.3.4`) e clique em **Update the stack**.
+3. Troque a mesma tag em [`assets/stacks/ai-memory.yml`](../assets/stacks/ai-memory.yml), para o repositório continuar igual ao servidor.
+4. Atualize o Espião para a mesma versão (seção 4.2).
 
-Isso força um `docker pull` da imagem oficial antes de recriar o container.
+> ⚠️ **Por que não `:latest`:** num **Redeploy** comum, o Portainer **não** baixa a imagem `:latest` de novo; ele reusa o cache local. Em 03/11/2026 o servidor continuou na 3.3.2 com a 3.3.3 já publicada, até a tag ser fixada. Se um dia a stack voltar para `:latest`, marque **`Re-pull image and redeploy`** ao atualizar.
 
-**Opção B — Fixar a versão (recomendado para reprodutibilidade):**
-
-Em vez de `:latest`, fixe a tag de versão no YAML (veja as versões disponíveis em [Docker Hub → Tags](https://hub.docker.com/r/akitaonrails/ai-memory/tags)):
-
-```yaml
-image: akitaonrails/ai-memory:0.9.0
-```
-
-Para atualizar, edite a stack, **bump a tag** (ex.: `0.9.0` → `0.10.0`) e dê **Update the stack**. Como a tag mudou, o Portainer puxa a imagem nova de forma determinística — e você sempre sabe qual versão está rodando.
-
-**Opção C — Via SSH (sem Portainer):**
+**Alternativa via SSH (sem Portainer):**
 
 ```bash
-docker pull akitaonrails/ai-memory:latest
-# recria o container puxando a imagem atualizada (ajuste o caminho da stack):
+docker pull akitaonrails/ai-memory:3.3.3
+# recria o container com a imagem nova (ajuste o caminho da stack):
 docker compose -f /caminho/da/stack/ai-memory.yml up -d
 ```
 
 > 💾 Os dados ficam no bind mount `/srv/ai-memory/data` (no host), então atualizar/recriar o container **não apaga** sua memória.
 
-### 4.2. Atualizar o Espião (Windows / Antigravity IDE)
+### 4.2. Atualizar o Espião (CLI no notebook)
 
-O cliente é o binário `ai-memory` compilado em Rust — ele **não** se atualiza junto com a imagem. Você recompila a partir do repositório clonado e reinstala MCP + Hooks (os scripts de hook são regenerados a partir do binário, então uma versão nova traz hooks novos).
+O cliente é o binário `ai-memory`, e ele **não** se atualiza junto com a imagem: atualize os dois para a mesma versão.
+
+**No notebook (Omarchy):** o binário vem do pacote `ai-memory-bin` do AUR, que baixa o release oficial do GitHub e confere o checksum.
+
+```bash
+yay -S ai-memory-bin
+ai-memory --version
+```
+
+Os hooks do Claude Code chamam `/usr/bin/ai-memory` direto, então o binário novo vale a partir da próxima chamada, sem reinstalar os hooks. Se as notas da versão pedirem hooks novos, rode de novo o `ai-memory install-hooks --agent claude-code` com as opções da instalação.
+
+**No Windows (setup antigo):** você recompila a partir do repositório clonado e reinstala MCP + Hooks (os scripts de hook são regenerados a partir do binário, então uma versão nova traz hooks novos).
 
 No PowerShell:
 
@@ -164,7 +165,7 @@ ai-memory install-hooks --agent  claude-code --apply --hooks-dir "D:\cateim\Goog
 
 Confirme que cliente e servidor batem:
 
-- **Cliente (Windows):** `ai-memory --version`
+- **Cliente (notebook):** `ai-memory --version`
 - **Servidor (Orange Pi):** a tag da imagem na stack, ou via SSH no Orange Pi: `docker exec ai-memory /usr/local/bin/ai-memory --version`
 
 Após cada atualização, rode o teste da [seção 3](#-3-verificação-e-teste) para confirmar que o hook + MCP continuam conversando com o Orange Pi.
