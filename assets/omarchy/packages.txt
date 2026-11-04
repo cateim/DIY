@@ -48,6 +48,10 @@ gperf
 swig
 git-lfs
 
+# ---- Engenharia reversa (motor nativo do REA, docs/rea.md; instalados em 03/11/2026) ----
+ghidra
+jdk21-openjdk
+
 # ---- Arquivos, disco e sincronização ----
 7zip
 age

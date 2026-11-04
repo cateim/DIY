@@ -167,6 +167,8 @@ As três listas ficam em [`assets/omarchy/`](../assets/omarchy/) e se instalam p
 uv tool install graphifyy
 uv tool install semgrep
 uv tool install clang-format
+npm install --global rea-agents          # REA, no Node do mise (docs/rea.md)
+rea setup --client claude_code --yes     # MCP e skill do REA no Claude Code; acha o Ghidra em /opt/ghidra
 ```
 
 O ESP-IDF 5.5.5 do Jade fica em `~/esp`, com um venv próprio, e não está no DIY.
