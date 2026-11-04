@@ -1,0 +1,6 @@
+# Apps do Flathub instalados depois do Omarchy (flatpak history, 03/11/2026).
+#
+# Instalar:  flatpak install -y flathub $(grep -vE '^\s*(#|$)' assets/omarchy/flatpak.txt | cut -d' ' -f1)
+# O Bambu Studio (com.bambulab.BambuStudio) saiu em 03/11/2026 e não volta.
+
+com.blockstream.Green         # carteira Blockstream Green

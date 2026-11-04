@@ -1,0 +1,29 @@
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+[user]
+	name = <<GIT_NAME>>
+	email = <<GIT_EMAIL>>
+[init]
+	defaultBranch = master
+[rebase]
+	autoStash = true
+[merge]
+	autoStash = true
+[http "http://<<FORGEJO_ONION>>/"]
+	proxy = socks5h://127.0.0.1:9150
+[pull]
+	rebase = true
+[core]
+	autocrlf = input
+	editor = nvim
+[credential]
+	helper = /usr/lib/git-core/git-credential-libsecret
+[credential "https://github.com"]
+	helper = 
+	helper = !<<HOME>>/.local/share/mise/installs/gh/2.103.3/gh_2.103.3_linux_amd64/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !<<HOME>>/.local/share/mise/installs/gh/2.103.3/gh_2.103.3_linux_amd64/bin/gh auth git-credential

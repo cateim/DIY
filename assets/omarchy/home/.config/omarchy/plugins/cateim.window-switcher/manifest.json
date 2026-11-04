@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "cateim.window-switcher",
+  "name": "Window switcher",
+  "version": "1.0.0",
+  "author": "cateim",
+  "description": "Alt+Tab with live window thumbnails, driven by a Hyprland submap",
+  "kinds": [
+    "overlay"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "WindowSwitcher.qml"
+  }
+}

@@ -1,0 +1,9 @@
+[Unit]
+Description=rclone bisync de ~/Drive com o Google Drive
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/bin/sh -c "findmnt -no SOURCE /home | grep -q '^/dev/mapper/cateim'"
+ExecStart=/usr/bin/rclone bisync gdrive: <<HOME>>/Drive --filters-file <<HOME>>/.config/rclone/gdrive-filtros.txt --drive-skip-gdocs --drive-skip-shortcuts --resilient --recover --max-lock 2m --max-delete 5 --conflict-resolve newer --log-file <<HOME>>/.local/state/drive-sync.log --log-level INFO
+Nice=10
+IOSchedulingClass=idle

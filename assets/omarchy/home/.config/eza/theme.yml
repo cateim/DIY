@@ -1,0 +1,44 @@
+# eza colors by file type — fixed hex colors so types stay distinct in any Omarchy theme
+# (Hackerman maps almost every ANSI color to green/teal). Docs: man eza_colors-explanation
+
+filekinds:
+  normal: {foreground: Default}
+  directory: {foreground: "#00afff", is_bold: false}     # light sky blue (256-color 39), same as <<VPS_NAME>>
+  symlink: {foreground: "#56b6c2"}                       # cyan
+  executable: {foreground: "#98c379", is_bold: true}     # green
+  pipe: {foreground: "#d19a66"}
+  socket: {foreground: "#c678dd"}
+  block_device: {foreground: "#e5c07b", is_bold: true}
+  char_device: {foreground: "#e5c07b"}
+  special: {foreground: "#d19a66"}
+  mount_point: {foreground: "#61afef", is_bold: true, is_underline: true}
+
+broken_symlink: {foreground: "#e06c75", is_underline: true}   # red
+broken_path_overlay: {is_underline: true}
+
+file_type:
+  source: {foreground: "#e5c07b"}                        # yellow: code
+  build: {foreground: "#d19a66"}                         # orange: Makefile, package.json…
+  document: {foreground: "#4ec9b0"}                      # teal: pdf, docx, md…
+  image: {foreground: "#c678dd"}                         # purple
+  video: {foreground: "#ff79c6", is_bold: true}          # pink
+  music: {foreground: "#ff79c6"}                         # pink
+  compressed: {foreground: "#e06c75"}                    # red: zip, tar, 7z…
+  crypto: {foreground: "#e06c75", is_bold: true}         # bold red: keys, certs, gpg
+  compiled: {foreground: "#7f848e"}                      # gray: build output
+  temp: {foreground: "#5c6370", is_dimmed: true}         # dim: tmp, swp, ~
+
+extensions:
+  # config files -> orange (same family as build files)
+  toml: {filename: {foreground: "#d19a66"}}
+  yaml: {filename: {foreground: "#d19a66"}}
+  yml: {filename: {foreground: "#d19a66"}}
+  json: {filename: {foreground: "#d19a66"}}
+  jsonc: {filename: {foreground: "#d19a66"}}
+  ini: {filename: {foreground: "#d19a66"}}
+  conf: {filename: {foreground: "#d19a66"}}
+  cfg: {filename: {foreground: "#d19a66"}}
+  env: {filename: {foreground: "#d19a66"}}
+  # notes -> teal (documents)
+  md: {filename: {foreground: "#4ec9b0"}}
+  txt: {filename: {foreground: "#4ec9b0"}}

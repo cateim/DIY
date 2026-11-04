@@ -1,0 +1,16 @@
+# wayvnc: senha do VNC, a segunda tranca depois do login do Cloudflare Access (remote.<<DOMAIN>>).
+# O cliente VNC da Cloudflare no navegador só aceita a senha VNC clássica (DES, tipo 2); conferido em 02/11/2026.
+# Ela exige allow_broken_crypto + relax_encryption e só usa os 8 primeiros caracteres da senha.
+# O trecho sem criptografia é só 127.0.0.1 -> cloudflared; dali até o navegador vai no TLS da Cloudflare.
+# Clientes nativos (TigerVNC etc.) continuam podendo usar RSA-AES com a chave abaixo.
+enable_auth=true
+allow_broken_crypto=true
+relax_encryption=true
+rsa_private_key_file=<<HOME>>/.config/wayvnc/rsa_key.pem
+password=<<WAYVNC_PASSWORD>>
+
+# Teclado do VNC fixo em Português Brasil ABNT2 (o aparelho de onde acesso tem Ç).
+# O wayvnc digita por um teclado virtual com keymap e layout ativo próprios e reenvia
+# esse layout ao Hyprland a cada Shift/Ctrl, então trocar o layout pelo ícone da barra
+# não dura no VNC (src/keyboard.c, keyboard_apply_mods). O "br" sem variante já é o ABNT2.
+xkb_layout=br

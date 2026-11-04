@@ -1,0 +1,14 @@
+# Pacotes do AUR instalados depois do Omarchy (levantados com pacman -Qqm em 03/11/2026).
+#
+# Instalar:  omarchy pkg aur add $(grep -vE '^\s*(#|$)' assets/omarchy/packages-aur.txt | cut -d' ' -f1)
+
+ai-memory-bin                 # cliente do ai-memory (docs/ai-memory.md)
+antigravity-ide               # IDE principal
+anydesk-bin                   # instalado, mas não recebe conexão no Wayland
+autosubsync-bin
+blesh-git                     # sugestões e cores no bash (carregado no ~/.bashrc)
+chrome-remote-desktop
+hunspell-pt-br                # corretor em português
+openscad-snapshot-appimage    # modelagem 3D (Bambu A1 e A1 mini)
+sparrow-wallet
+ventoy-bin
