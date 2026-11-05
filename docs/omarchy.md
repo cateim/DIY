@@ -210,6 +210,19 @@ Tudo o que não é arquivo do espelho, na ordem em que faz sentido numa reinstal
     ```
 
 11. **Apps**: os PWAs do Chrome voltam pelo sync da conta Google; o SideSwap é um AppImage baixado em `~/Applications/SideSwap.AppImage`.
+12. **Agente SSH** (a senha de uma chave é pedida uma vez por login, não a cada `ssh`): ligue o agente do pacote `openssh` e ponha o bloco abaixo no fim do `~/.ssh/config`. O `IdentityAgent` faz o agente valer também para quem não herdou o `SSH_AUTH_SOCK`, como o Antigravity e o Claude Code. O `~/.ssh/config` fica fora do espelho, porque lista os servidores dos clientes.
+
+    ```bash
+    systemctl --user enable --now ssh-agent.socket
+    ```
+
+    ```text
+    Host *
+        AddKeysToAgent yes
+        IdentityAgent ${XDG_RUNTIME_DIR}/ssh-agent.socket
+    ```
+
+    O primeiro `ssh` depois do login pede a senha e deixa a chave no agente até reiniciar ou sair da sessão. Para ver o que está carregado: `SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/ssh-agent.socket ssh-add -l`.
 
 ---
 
