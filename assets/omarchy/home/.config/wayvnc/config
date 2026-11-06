@@ -13,4 +13,8 @@ password=<<WAYVNC_PASSWORD>>
 # O wayvnc digita por um teclado virtual com keymap e layout ativo próprios e reenvia
 # esse layout ao Hyprland a cada Shift/Ctrl, então trocar o layout pelo ícone da barra
 # não dura no VNC (src/keyboard.c, keyboard_apply_mods). O "br" sem variante já é o ABNT2.
-xkb_layout=br
+# CapsLock age como SUPER só neste teclado virtual (~/.config/xkb/symbols/brvnc): no
+# navegador do Windows a tecla Win fica com o sistema, o CapsLock chega. Ele mantém o
+# keysym Caps_Lock, então funciona com cliente por keysym e por scancode (QEMU).
+xkb_layout=brvnc
+xkb_variant=super_caps

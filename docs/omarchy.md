@@ -129,7 +129,8 @@ Placeholders do espelho:
 
 | Arquivo | O que muda |
 | :--- | :--- |
-| `~/.config/wayvnc/config` | Senha VNC clássica (o cliente da Cloudflare no navegador só aceita essa e só usa 8 caracteres), chave RSA para clientes nativos e teclado fixo em ABNT2. |
+| `~/.config/wayvnc/config` | Senha VNC clássica (o cliente da Cloudflare no navegador só aceita essa e só usa 8 caracteres), chave RSA para clientes nativos e teclado no layout `brvnc` (ABNT2 com CapsLock agindo como SUPER). |
+| `~/.config/xkb/symbols/brvnc` | Layout só do teclado virtual do wayvnc: ABNT2 em que o CapsLock mantém o keysym `Caps_Lock` mas age como SUPER. No navegador do Windows a tecla Win fica com o sistema e o CapsLock chega, então os atalhos SUPER do Hyprland funcionam pelo VNC da Cloudflare. O teclado físico do notebook não muda. |
 | `~/.config/systemd/user/wayvnc.service` | wayvnc só em `127.0.0.1:5900`, na tela do notebook. |
 | `~/.local/bin/vnc-trocar-tela` | Troca o monitor que o wayvnc transmite (`CTRL + SHIFT + F12`). |
 | `~/.local/bin/drive-sync.sh` e `~/.config/systemd/user/drive-sync.{service,timer}` | rclone bisync do `~/Drive` com o Google Drive a cada 15 minutos, só com o `/home` do Crucial montado. |
