@@ -4,7 +4,7 @@
 #
 # Pré-requisitos (uma vez, via SSH no host):
 #   docker network create auth-net           # rede Caddy <-> Authelia <-> lldap
-#   sudo mkdir -p /srv/authelia/{config,lldap}
+#   sudo mkdir -p /srv/authelia/{config,lldap,redis}
 #   sudo chown -R 1000:1000 /srv/authelia
 #   # grave o configuration.yml em /srv/authelia/config/configuration.yml
 #   # preencha os segredos na aba Environment variables do Portainer (ou .env)
@@ -54,6 +54,40 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # ---------------------------------------------------------- authelia-redis
+  # Guarda as sessões do Authelia. Sem ele, a sessão vivia na memória do
+  # Authelia, e cada recriação do container (redeploy, update de imagem, reboot)
+  # deslogava todo mundo, até quem marcou "Lembrar-me". O dump.rdb em /data
+  # sobrevive à recriação: o Redis grava no disco ao receber o SIGTERM.
+  # Sem senha de propósito: na auth-net só estão authelia, lldap e caddy, e o
+  # Caddy já vê o cookie de sessão de toda requisição que passa por ele.
+  authelia-redis:
+    image: redis:8-alpine
+    container_name: authelia-redis
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    # Mesmo UID do resto de /srv/authelia, para o bind mount funcionar sem chown extra.
+    user: "1000:1000"
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - /srv/authelia/redis:/data             # dump.rdb com as sessões
+    expose:
+      - "6379"                                # NÃO publicar no host
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - auth-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   # ---------------------------------------------------------------- authelia
   authelia:
     # Rolling: acompanha a linha estável do Authelia (hoje 4.39.x). Atualize com
@@ -67,6 +101,8 @@ services:
       - no-new-privileges:true
     depends_on:
       lldap:
+        condition: service_healthy
+      authelia-redis:
         condition: service_healthy
     environment:
       TZ: America/Sao_Paulo
