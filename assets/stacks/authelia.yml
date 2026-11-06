@@ -54,7 +54,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # ---------------------------------------------------------- authelia-redis
+  # -------------------------------------------------------------- auth-redis
   # Guarda as sessões do Authelia. Sem ele, a sessão vivia na memória do
   # Authelia, e cada recriação do container (redeploy, update de imagem, reboot)
   # deslogava todo mundo, até quem marcou "Lembrar-me". O dump.rdb em /data
@@ -64,9 +64,9 @@ services:
   # quem lê o Redis entra como qualquer usuário logado, já com 2FA; os dados vão
   # criptografados com o AUTHELIA_SESSION_SECRET, mas a chave não. Só o Authelia
   # alcança a porta, e ele já tem todos os segredos: senha no Redis não somaria nada.
-  authelia-redis:
+  auth-redis:
     image: redis:8-alpine
-    container_name: authelia-redis
+    container_name: auth-redis
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -105,7 +105,7 @@ services:
     depends_on:
       lldap:
         condition: service_healthy
-      authelia-redis:
+      auth-redis:
         condition: service_healthy
     environment:
       TZ: America/Sao_Paulo
@@ -124,7 +124,7 @@ services:
     # Usa o HEALTHCHECK embutido da imagem (/api/health).
     networks:
       - auth-net                              # Caddy e lldap
-      - auth-redis-net                        # só o authelia-redis
+      - auth-redis-net                        # só o auth-redis
     logging:
       driver: "json-file"
       options:
