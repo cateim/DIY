@@ -10,18 +10,19 @@ A stack pronta está em [`assets/stacks/authelia.yml`](../assets/stacks/authelia
 
 ## Componentes
 
-| Serviço    | Papel                               | Portas (internas, sem host) |
-| :--------- | :---------------------------------- | :-------------------------- |
-| `lldap`    | diretório LDAP + UI web de usuários | `3890` (LDAP), `17170` (UI) |
-| `authelia` | login, sessão, políticas, MFA       | `9091` (API/authz)          |
+| Serviço          | Papel                               | Portas (internas, sem host) |
+| :--------------- | :---------------------------------- | :-------------------------- |
+| `lldap`          | diretório LDAP + UI web de usuários | `3890` (LDAP), `17170` (UI) |
+| `authelia`       | login, sessão, políticas, MFA       | `9091` (API/authz)          |
+| `authelia-redis` | guarda as sessões do Authelia       | `6379`                      |
 
-Ambos ficam só na rede `auth-net` (não na `caddy-net` dos apps) — só o Caddy os alcança.
+Os três ficam só na rede `auth-net` (não na `caddy-net` dos apps): só o Caddy os alcança.
 
 ## Parte 1: Rede e pastas (via SSH, uma vez)
 
 ```bash
 docker network create auth-net
-sudo mkdir -p /srv/authelia/{config,lldap}
+sudo mkdir -p /srv/authelia/{config,lldap,redis}
 sudo chown -R 1000:1000 /srv/authelia
 ```
 
@@ -57,7 +58,7 @@ AUTHELIA_NOTIFIER_SMTP_PASSWORD = sua API key `re_...` do painel do Resend
 1. Portainer → **Stacks** → **Add Stack** → Nome: `authelia`.
 2. Cole o YAML de [`assets/stacks/authelia.yml`](../assets/stacks/authelia.yml).
 3. Preencha as **8** variáveis da Parte 2 em **Environment variables** (7 geradas + a API key do Resend).
-4. **Deploy**. Ordem de subida: `lldap` (fica _healthy_) → `authelia`.
+4. **Deploy**. Ordem de subida: `lldap` e `authelia-redis` (ficam _healthy_) → `authelia`.
 
 ## Parte 4: Bootstrap — criar o bind do Authelia e seu usuário
 
@@ -107,7 +108,11 @@ O notifier do Authelia usa **SMTP** (Resend) — é o que entrega os **links de 
 
 **Tempo de sessão** (bloco `session.cookies`): `inactivity: 1h` (tempo parado sem nenhuma requisição) e `expiration: 12h` (teto absoluto, mesmo com uso). Valem para **todos** os apps, porque o cookie é um só; não existe prazo próprio por subdomínio. Para um painel que fica aberto o dia todo (como o `monitor.`), marque **Lembrar-me** no login: a sessão passa a durar o `remember_me` (1 mês) e deixa de cair por inatividade.
 
-> ⚠️ Nenhum desses prazos sobrevive a um restart do Authelia: sem Redis, a sessão vive na memória.
+**Onde a sessão fica** (bloco `session.redis`): no container `authelia-redis`, com o `dump.rdb` em `/srv/authelia/redis`. Um restart ou recriação do Authelia (redeploy, update de imagem, reboot) não desloga ninguém.
+
+> ⚠️ Antes do Redis, a sessão vivia na memória do Authelia, e cada recriação do container deslogava todo mundo, inclusive quem marcou **Lembrar-me**. A stack vem do repositório pelo webhook do Portainer, e cada push recriava o Authelia: foram 3 logouts só em 06/11/2026. Para conferir se é isso, compare a hora dos pushes com `sudo docker logs portainer 2>&1 | grep "Container authelia"`.
+>
+> **Migrando uma instalação sem Redis:** crie `/srv/authelia/redis` (Parte 1), faça o deploy da stack nova e só **depois** grave o `configuration.yml` com o bloco `session.redis` em `/srv/authelia/config/` e rode `docker restart authelia`. Na ordem inversa, o Authelia procura um Redis que ainda não existe. A troca desloga todo mundo uma última vez.
 
 ## Parte 6.1: Marca e tema do portal
 
@@ -128,7 +133,7 @@ O portal (`auth.selflabs.org`) usa o tema automático e a marca Self-Labs. O Aut
    docker restart authelia
    ```
 
-> ⚠️ Sem Redis, as sessões ficam na memória do Authelia: cada reinício desloga todo mundo de todos os apps protegidos, e o próximo acesso pede senha e 2FA de novo.
+> ℹ️ O restart não desloga ninguém: as sessões ficam no `authelia-redis` (Parte 6).
 
 A `logo.png` é o logo da Self-Labs (digital e escrita) em fundo transparente, 512x512, gerado a partir do `selflabs.svg` sem o retângulo de fundo, para servir ao tema claro e ao escuro: um fundo opaco apareceria como um quadrado num dos dois. No claro, as cores da marca ficam mais suaves, mas a digital continua legível.
 
@@ -138,8 +143,8 @@ Adicione uma regra em `access_control` na config (`one_factor` = só senha, ou `
 
 ## Parte 8: Atualizar e backup
 
-- **Atualizar:** Portainer → stack `authelia` → **Re-pull image and redeploy**. As duas imagens são rolling (`authelia:latest` e `lldap:stable`), e o redeploy comum reaproveita o cache sem baixar versão nova. Se um salto de versão quebrar a configuração, fixe a tag anterior (ex.: `:4.39`) na stack, redeploy, e volte para `:latest` depois de ajustar a config.
-- **Backup:** `/srv/authelia` (SQLite do Authelia + `users.db` do lldap + config) **+** os 8 segredos. Restaurar os dois recompõe tudo.
+- **Atualizar:** Portainer → stack `authelia` → **Re-pull image and redeploy**. As três imagens são rolling (`authelia:latest`, `lldap:stable` e `redis:8-alpine`), e o redeploy comum reaproveita o cache sem baixar versão nova. Se um salto de versão quebrar a configuração, fixe a tag anterior (ex.: `:4.39`) na stack, redeploy, e volte para `:latest` depois de ajustar a config.
+- **Backup:** `/srv/authelia` (SQLite do Authelia + `users.db` do lldap + config + `dump.rdb` das sessões) **+** os 8 segredos. Restaurar os dois recompõe tudo. Sem o `dump.rdb`, o único efeito é pedir login de novo.
 
 ## Troubleshooting
 
@@ -152,11 +157,13 @@ Adicione uma regra em `access_control` na config (`one_factor` = só senha, ou `
 | E-mail (reset/2FA) não chega            | Domínio do `sender` não verificado no Resend, ou API key errada   | `sender` num domínio verde no Resend; `AUTHELIA_NOTIFIER_SMTP_PASSWORD` = API key `re_...`; `docker logs authelia 2>&1 \| grep -i smtp`                           |
 | Reset de senha falha (sem permissão)    | Conta `authelia` é `lldap_strict_readonly`                        | Mova a `authelia` para `lldap_password_manager` na UI do lldap (ou resete você mesmo como admin)                                                                  |
 | 2FA não registra                        | SMTP não entrega o código de verificação                          | Ver a linha de e-mail acima — sem SMTP não há como registrar o TOTP                                                                                               |
+| Desloga mesmo com "Lembrar-me"          | Sessão fora do Redis (config sem `session.redis`), ou `dump.rdb` perdido | `docker exec authelia-redis redis-cli dbsize` maior que 0 depois de logar; confira o bloco `session.redis` em `/srv/authelia/config/configuration.yml` |
+| Authelia não sobe depois do Redis       | `authelia-redis` fora do ar ou sem permissão em `/srv/authelia/redis` | `docker logs authelia-redis`; `sudo chown -R 1000:1000 /srv/authelia/redis`                                                                                     |
 
 ## Notas Importantes
 
 - **SQLite = instância única:** nem Authelia nem lldap escalam para réplicas. Um container de cada.
-- **Sem Redis/Postgres:** sessão em memória (cai no restart do Authelia — aceitável num host único) e storage SQLite.
+- **Redis sem Postgres:** sessão no `authelia-redis` (sobrevive a restart e redeploy) e storage SQLite.
 - **MFA:** `users.` está em `two_factor` (senha + TOTP) e `pdf.` em `one_factor` (só senha) — ajuste por app no `access_control`. O TOTP é registrado no portal; o código de registro chega por e-mail (SMTP, [Parte 5](#parte-5-e-mail-smtp-via-resend-e-2fa-totp)).
 - **`admin` do lldap ≠ `authelia`:** o `admin` administra o lldap; o `authelia` é conta de serviço (só-leitura, ou `lldap_password_manager` se quiser reset self-service). Nunca use o `admin` como bind.
 

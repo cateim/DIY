@@ -88,14 +88,17 @@ access_control:
     #   policy: 'two_factor'
     #   subject: ['group:admins']
 
-# Sessão em memória (SEM Redis). O cookie no domínio-pai selflabs.org faz um
-# login cobrir todos os *.selflabs.org (SSO). secret vem de AUTHELIA_SESSION_SECRET.
+# Sessão no Redis (container authelia-redis da stack). O cookie no domínio-pai
+# selflabs.org faz um login cobrir todos os *.selflabs.org (SSO). secret vem de
+# AUTHELIA_SESSION_SECRET.
 # Os tempos valem para TODOS os apps: o cookie é um só, então não dá para dar ao
 # monitor um prazo diferente do resto. inactivity é o tempo parado (aba aberta sem
 # navegar) e expiration o teto absoluto; com 5m/1h o painel do monitor deslogava
 # o tempo todo. Marcar "Lembrar-me" no login troca os dois pelo remember_me (1 mês
-# sem pedir senha nem 2FA), mas um restart do Authelia derruba tudo de qualquer
-# jeito: a sessão vive na memória.
+# sem pedir senha nem 2FA).
+# Antes do Redis a sessão vivia na memória do Authelia, e cada recriação do
+# container deslogava todo mundo. Cada push no repo DIY recriava o Authelia pelo
+# webhook do Portainer: foram 3 logouts só em 06/11/2026.
 session:
   cookies:
     - domain: 'selflabs.org'
@@ -106,6 +109,10 @@ session:
       inactivity: '1h'
       expiration: '12h'
       remember_me: '1M'
+  # Sem senha: o Redis só é alcançável pela auth-net (ver a stack).
+  redis:
+    host: 'authelia-redis'
+    port: 6379
 
 # Storage local SQLite (SEM Postgres). encryption_key vem de
 # AUTHELIA_STORAGE_ENCRYPTION_KEY (obrigatório; FAÇA BACKUP).
