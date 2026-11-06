@@ -8,7 +8,8 @@
 # Como: guarda uma cópia de cada arquivo vigiado e a versão de cada pacote vigiado em
 # ~/.local/state/vigia-omarchy/base/. Cada execução compara com o atual, escreve o que mudou (com
 # o diff) em ~/.local/state/vigia-omarchy/relatorio.txt e manda uma notificação. Também confere
-# erros na config do Hyprland, atalhos repetidos e se os plugins cateim.* seguem ligados.
+# erros na config do Hyprland, atalhos repetidos, se os plugins cateim.* seguem ligados e se o
+# shell do Omarchy ainda roda o código de antes da atualização.
 # Quando roda: hooks post-update (dentro do "omarchy update", depois das migrações) e post-boot
 # (pega o que o update atualiza depois do hook: pacotes do AUR e o mise).
 # Uso:
@@ -21,6 +22,9 @@ readonly LISTA="$HOME/.config/vigia-omarchy/vigiados.conf"
 readonly ESTADO="$HOME/.local/state/vigia-omarchy"
 readonly BASE="$ESTADO/base"
 readonly RELATORIO="$ESTADO/relatorio.txt"
+readonly SHELL_CMDLINE='quickshell -n -p /usr/share/omarchy/shell'
+# O ctime muda quando o pacote é instalado (o mtime vem da data do build).
+readonly SHELL_REFERENCIA='/usr/share/omarchy/shell/shell.qml'
 
 avisos=()
 
@@ -109,18 +113,33 @@ conferir_hyprland() {
 }
 
 conferir_plugins() {
-  local lista dir id
+  # Só os plugins cateim.* que o shell.json usa (barra ou lista de plugins): um clone desligado de
+  # propósito fica no disco e não é problema.
+  local lista id
   if ! lista=$(omarchy-plugin-list --json 2>/dev/null); then
     registrar "NÃO CONSEGUI listar os plugins (omarchy-plugin-list --json falhou)"
     return
   fi
-  for dir in "$HOME"/.config/omarchy/plugins/cateim.*/; do
-    [[ -d $dir ]] || continue
-    id=$(basename "$dir")
+  while IFS= read -r id; do
     if ! jq -e --arg id "$id" 'any(.[]; .id == $id and .enabled == true)' <<<"$lista" >/dev/null; then
-      registrar "PLUGIN $id não aparece ligado (ou o formato de omarchy-plugin-list mudou)"
+      registrar "PLUGIN $id está no shell.json mas não aparece ligado (ou o formato de omarchy-plugin-list mudou)"
     fi
-  done
+  done < <(jq -r '[.bar.layout[]?[]?.id?, .plugins[]?.id?] | .[] | select(. != null and startswith("cateim."))' \
+    "$HOME/.config/omarchy/shell.json" 2>/dev/null | sort -u)
+}
+
+conferir_shell() {
+  # Um shell que já rodava antes de o pacote omarchy ser atualizado continua com o código antigo
+  # na memória, e os atalhos novos chamam o que ele não tem. Em 05/11/2026 a 4.5 não reiniciou o
+  # shell (rodava desde 03/11): SUPER + SPACE e SUPER + ALT + SPACE não faziam nada
+  # ("Target not found") até o omarchy restart shell.
+  local pid inicio instalado
+  pid=$(pgrep -of "$SHELL_CMDLINE") || return 0
+  inicio=$(( $(date +%s) - $(ps -o etimes= -p "$pid") ))
+  instalado=$(stat -c %Z "$SHELL_REFERENCIA" 2>/dev/null) || return 0
+  if (( inicio < instalado )); then
+    registrar "SHELL ANTIGO: o shell do Omarchy roda desde $(date -d "@$inicio" '+%d/%m %H:%M'), antes da instalação do omarchy $(versao_do_pacote omarchy) em $(date -d "@$instalado" '+%d/%m %H:%M'). Rode: omarchy restart shell (sem isso, atalhos como SUPER + SPACE podem não fazer nada)"
+  fi
 }
 
 conferir() {
@@ -136,6 +155,7 @@ conferir() {
   done < <(itens)
   conferir_hyprland
   conferir_plugins
+  conferir_shell
   mv -- "$RELATORIO.novo" "$RELATORIO"
 
   if (( ${#avisos[@]} == 0 )); then
