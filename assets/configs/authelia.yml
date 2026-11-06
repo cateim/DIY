@@ -88,7 +88,7 @@ access_control:
     #   policy: 'two_factor'
     #   subject: ['group:admins']
 
-# Sessão no Redis (container authelia-redis da stack). O cookie no domínio-pai
+# Sessão no Redis (container auth-redis da stack). O cookie no domínio-pai
 # selflabs.org faz um login cobrir todos os *.selflabs.org (SSO). secret vem de
 # AUTHELIA_SESSION_SECRET.
 # Os tempos valem para TODOS os apps: o cookie é um só, então não dá para dar ao
