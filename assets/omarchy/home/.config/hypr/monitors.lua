@@ -1,13 +1,15 @@
 -- See https://wiki.hypr.land/Configuring/Basics/Monitors/
 -- List current monitors and supported resolutions with: hyprctl monitors all
 
-local omarchy_gdk_scale = 2
-local omarchy_monitor_scale = 1.6
+local omarchy_gdk_scale = 1
+local omarchy_monitor_scale = 1
 
 hl.env("GDK_SCALE", tostring(omarchy_gdk_scale))
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = omarchy_monitor_scale })
--- Escalas fixas de propósito: o controle SCALE do painel reescreve omarchy_monitor_scale,
--- e se estas regras usassem a variável ele mudaria as duas telas juntas.
+-- Escalas fixas por tela: Alienware 1.25 e LG 1. As duas variáveis acima são do controle de
+-- escala do Omarchy: omarchy_monitor_scale só vale para tela sem regra própria, e desde a 4.5
+-- o comando grava a escala na regra com o nome da tela e põe em omarchy_gdk_scale a menor
+-- escala arredondada (aqui 1). Com 2, os apps GTK do XWayland abrem com o dobro do tamanho.
 -- O Alienware fica na origem 0x0 de propósito: o xdg-desktop-portal-hyprland informa toda
 -- tela compartilhada na posição (0,0) (src/portals/Screencopy.cpp), e o RustDesk usa essa
 -- posição para mirar o mouse. Com o eDP-1 em outro ponto, o cursor remoto caía no LG
