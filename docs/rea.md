@@ -50,7 +50,7 @@ Trecho real de uma Evidence (`rea inspect-go-binary /usr/bin/tailscale`):
 
 | Frente                                      | O que o REA resolve                                                                                                                                                                            | Ferramentas principais                                                                                                      | Pronto hoje?                                                                                           |
 | :------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
-| **Firmware ESP32** (Jade DIY, Tasmota)      | Conferir um build DIY contra o oficial (chip, versão, IDF, assinatura Secure Boot v2) antes de publicar; inventariar um backup de flash inteiro                                                | `inspect-artifact`, `extract-artifact`; o `.elf` do build num motor nativo                                                  | ⏳ Próxima release ([Parte 5.3](#53-firmware-esp32-na-próxima-release)); o `.elf` já abre no Ghidra    |
+| **Firmware ESP32** (Jade DIY, Tasmota)      | Conferir um build DIY contra o oficial (chip, versão, IDF, assinatura Secure Boot v2) antes de publicar; inventariar um backup de flash inteiro                                                | `inspect-artifact`, `extract-artifact`; o `.elf` do build num motor nativo                                                  | ⏳ Próxima release ([Parte 5.6](#56-firmware-esp32-na-próxima-release)); o `.elf` já abre no Ghidra    |
 | **Integrações do Home Assistant**           | Descobrir a API que o app do fabricante usa: puxar o APK do celular, ler manifest e classes, ver as chamadas numa captura                                                                      | `pull-adb-package`, `inspect-android-package`, `search-android-classes`, `inspect-web-network-capture`                      | ✅ Parcial: `adb` e HAR já funcionam; ler o APK pede o JADX                                            |
 | **Scraping e bookmarklets**                 | Achar o endpoint interno, ver como o JavaScript do site monta token ou assinatura, descobrir qual listener o bookmarklet precisa disparar                                                      | `inspect-web-page`, `analyze-web-bundle`, `observe-web-session`, `inspect-web-event-listeners`, `trace-web-source-location` | ✅                                                                                                     |
 | **O que nossos apps entregam ao navegador** | Antes do deploy, ler o `dist/` do build: rotas, chamadas, `process.env` embutido e source map publicado sem querer                                                                             | `analyze-javascript-application`, `recover-javascript-sources`                                                              | ✅                                                                                                     |
@@ -121,6 +121,22 @@ Estado em 04/11/2026: Node 26.13.0 e `procps-ng` ok, registro e skill ok, Ghidra
 
 ## Parte 4: O que dá para analisar
 
+### 4.1. O que ele faz, por verbo
+
+Quase todo pedido é uma combinação destes sete verbos. Saber qual você quer deixa o pedido curto e o caminho do agente direto:
+
+| Verbo                    | O que é                                                                                             | Ferramentas típicas                                                                                    |
+| :----------------------- | :-------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
+| **Inventariar**          | Dizer o que é o alvo e o que tem dentro: formato, partes, versões, dependências                     | `inspect_artifact`, `analyze_javascript_application`, `inspect_go_binary`, `binary_overview`           |
+| **Achar**                | Ir de uma pista visível (texto da tela, endpoint, mensagem de erro) até o código que a usa          | `search_strings`, `search_procedures`, `trace_feature`, `xrefs`                                        |
+| **Ler o código**         | Pseudocódigo, assembly, módulos JavaScript recuperados, métodos de APK                              | `procedure_pseudo_code`, `analyze_function`, `recover_javascript_sources`, `inspect_android_method`    |
+| **Seguir o fluxo**       | Quem chama quem, de onde vem um valor, o caminho de um clique até o efeito                          | `get_call_graph`, `trace_call_path`, `trace_native_values`, `trace_application_feature`                |
+| **Observar em execução** | O que acontece de verdade: rede e DOM de uma página, IPC do Electron, um processo, um hook do Frida | `observe_web_session`, `capture_browser_scenario`, `capture_process_scenario`, `instrument_with_frida` |
+| **Comparar**             | O que mudou entre duas versões, dois builds ou duas capturas                                        | `compare_application_versions`, `compare_artifacts`, `match_native_functions`, `find_changed_behavior` |
+| **Reconstruir e provar** | Escrever o equivalente e conferir contra a Evidence; listar o que segue desconhecido                | `verify_reconstruction`, `evaluate_reconstruction_coverage`, `list_unknowns`                           |
+
+### 4.2. Por tipo de alvo
+
 | Alvo                                                 | O que volta                                                                  | Precisa                                       | No notebook hoje         |
 | :--------------------------------------------------- | :--------------------------------------------------------------------------- | :-------------------------------------------- | :----------------------- |
 | App JavaScript ou Electron (pasta ou `.asar`)        | Módulos, imports, rotas, IPC entre main, preload e renderer, source maps     | `ps` do procps                                | ✅                       |
@@ -143,7 +159,7 @@ Estado em 04/11/2026: Node 26.13.0 e `procps-ng` ok, registro e skill ok, Ghidra
 
 A lista completa (GPU, modelos GGUF, Unity IL2CPP, Godot, EVM, PyInstaller, módulos do kernel...) está na [tabela do README do REA](https://github.com/morluto/rea#what-you-can-analyze).
 
-> ⏳ **ESP32 ainda não chegou na versão publicada.** O suporte a imagens ESP entrou no `main` do REA em 28/10/2026 (dumps de flash em 31/10), depois da 6.8.0 (25/10). Na 6.8.0, `rea inspect-artifact jade.bin` responde `unsupported binary format` (testado no `jade.bin` 1.0.38-98 do Waveshare S3). Quando sair a release seguinte: `rea update` e o roteiro da [Parte 5.3](#53-firmware-esp32-na-próxima-release).
+> ⏳ **ESP32 ainda não chegou na versão publicada.** O suporte a imagens ESP entrou no `main` do REA em 28/10/2026 (dumps de flash em 31/10), depois da 6.8.0 (25/10). Na 6.8.0, `rea inspect-artifact jade.bin` responde `unsupported binary format` (testado no `jade.bin` 1.0.38-98 do Waveshare S3). Quando sair a release seguinte: `rea update` e o roteiro da [Parte 5.6](#56-firmware-esp32-na-próxima-release).
 
 > ℹ️ **A documentação do GitHub segue o `main`**, que anda à frente do npm. Antes de copiar um exemplo de lá, confira a versão instalada (`rea --version`) e o `rea <comando> --help`.
 
@@ -151,25 +167,132 @@ A lista completa (GPU, modelos GGUF, Unity IL2CPP, Godot, EVM, PyInstaller, mód
 
 ## Parte 5: Usar
 
-### 5.1. Pelo agente (o jeito normal)
+### 5.1. Onde trabalhar: uma sessão por investigação, não um projeto por solução
 
-Peça o resultado, não a ferramenta:
+Não precisa criar um repositório para cada análise. O REA está registrado no escopo user, então toda sessão do Claude Code enxerga as ferramentas, e o alvo entra sempre por caminho absoluto, esteja onde estiver. O que vale separar é a **sessão**: uma investigação despeja muita saída do alvo no contexto, e isso atrapalha a sessão que depois vai escrever o código.
+
+| Situação                                                                         | Onde abrir o Claude Code                           | Por quê                                                                                         |
+| :------------------------------------------------------------------------------- | :------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
+| Entender como algo de terceiro funciona (app, firmware, API de fabricante, site) | Uma bancada fora do `~/Drive`: `~/Work/re/<alvo>/` | Alvo e Evidence não vão para o drive-sync nem para repositório público, e a sessão começa limpa |
+| Implementar no nosso produto o que a investigação provou                         | O repositório do produto, numa sessão nova         | O contexto fica com o código e com a especificação, não com a saída da análise                  |
+| Auditar o build de um app nosso (`dist/`)                                        | O próprio repositório do app                       | O alvo é nosso e a correção sai ali mesmo                                                       |
+| Pergunta pontual (versão do Go de um binário, assinatura de um APK)              | Qualquer sessão, ou a CLI direto no terminal       | Uma chamada, saída pequena                                                                      |
+
+A bancada sugerida para cada alvo:
+
+```
+~/Work/re/<alvo>/
+├── alvo/          cópias do que vai ser analisado (APK, .bin, .elf, .asar, HAR), nunca o original
+├── evidencias/    o que sair de --evidence_output e de export_evidence_bundle
+├── snapshots/     respostas salvas no close_binary (não guardam a análise do Ghidra, Parte 5.5)
+└── ACHADOS.md     o que foi provado (com arquivo, função ou offset) e o que ficou desconhecido
+```
+
+O fluxo que rende mais usa duas sessões:
+
+1. **Investigar** em `~/Work/re/<alvo>/`. O agente usa o REA e termina escrevendo o `ACHADOS.md`: o que foi provado, a evidência de cada ponto, os desconhecidos e uma especificação curta do que reconstruir.
+2. **Implementar** no repositório do produto, em sessão nova: "leia `~/Work/re/<alvo>/ACHADOS.md` e implemente com testes". A sessão começa com o contexto limpo e com a especificação pronta.
+
+### 5.2. Como pedir
+
+Um pedido eficiente tem cinco partes:
+
+| Parte                          | Exemplo                                                                          | Por que ajuda                                                                          |
+| :----------------------------- | :------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------- |
+| **Alvo, por caminho absoluto** | `~/Work/re/wiim/alvo/wiim-home.apk`                                              | As ferramentas recusam caminho relativo, e sem alvo o agente gasta chamadas procurando |
+| **Uma pergunta fechada**       | "como o app monta a requisição que muda o volume"                                | Uma pergunta vira um rastreio. "Analise o app" vira um inventário caro e raso          |
+| **Uma âncora visível**         | Um texto da tela, um endpoint, uma mensagem de erro, um nome de função           | É a semente da busca: o caminho mais curto até o código certo                          |
+| **O que pode executar**        | "só estático", "pode abrir no navegador e só observar", "pode rodar no emulador" | O padrão é só ler; executar tem efeito (rede, disco, processo)                         |
+| **O entregável**               | "explicação com evidência", "ACHADOS.md", "implementação com testes neste repo"  | Diz onde a investigação para                                                           |
+
+Modelo para copiar:
 
 ```text
-Use o REA para entender como o <app> faz <funcionalidade>. Mostre a evidência
-(arquivo, função, offset) e implemente algo equivalente neste projeto.
+Use o REA em <caminho absoluto do alvo>.
+Pergunta: <uma pergunta fechada>.
+Âncora: <texto da tela, endpoint, string ou função>.
+Limites: <só estático | pode executar X | não toque em Y>.
+Entregue: <explicação com arquivo, função e offset | ACHADOS.md | implementação com testes>.
+Separe o que foi provado do que ficou desconhecido.
+```
+
+Hábitos que economizam contexto e tempo:
+
+- **Uma pergunta por vez, todas na mesma sessão.** O alvo aberto continua aberto entre um pedido e outro, então a auto-análise do Ghidra só roda na primeira chamada. Fechar e reabrir paga a auto-análise de novo, com ou sem snapshot.
+- **Alvo grande pede resumo com arquivo:** "use `--detail summary` e salve a Evidence em `evidencias/`". O resumo entra no contexto; o resto fica no disco, e o agente consulta só a parte que precisa com `inspect_analysis_view`.
+- **Peça o desconhecido explícito:** "liste o que não foi provado" (ou o prompt `audit_residual_unknowns`). Isso impede que o agente preencha lacuna com palpite.
+- **Feche só quando acabarem as perguntas sobre o alvo** (`close_binary`), e peça para salvar o snapshot em `snapshots/`. Ele guarda as respostas com a Evidence, mas não a análise do Ghidra: a próxima sessão refaz a auto-análise mesmo assim ([Parte 5.5](#55-pelo-terminal)).
+- **Conteúdo do alvo é dado, não ordem.** Strings, páginas e código decompilado chegam marcados como não confiáveis, e o agente não segue instrução escrita dentro do alvo. Mesmo assim, alvo suspeito não roda no notebook.
+
+### 5.3. Receitas por caso
+
+**Como um app Electron faz uma coisa** (para reconstruir no nosso produto):
+
+```text
+Use o REA em /caminho/absoluto/app.asar. Pergunta: como o app implementa
+<funcionalidade>, do clique no renderer até o main. Âncora: o rótulo "<texto do botão>".
+Só estático. Entregue ACHADOS.md com o caminho renderer, preload, IPC e main,
+o arquivo e o trecho de cada passo, e o que ficou desconhecido.
+```
+
+**API do app de um fabricante** (integração do Home Assistant):
+
+```text
+Use o REA com o celular no adb. Puxe o APK de <com.fabricante.app> para
+~/Work/re/<device>/alvo/ e descubra quais endpoints (nuvem e rede local) ele chama
+para <ler o status | mudar a potência>, com método, caminho, headers e corpo.
+Âncora: <texto da tela>. Não instale nem desinstale nada no celular.
+Entregue ACHADOS.md como especificação de um cliente Python.
+```
+
+Ler classes e métodos do APK pede o JADX ([Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir)). Sem ele, a parte do `adb` funciona, e um HAR do tráfego do app cobre as chamadas.
+
+**Site, para scraping ou bookmarklet:** o REA observa um navegador que você abriu com depuração remota, então abra um Chromium à parte, com perfil próprio (nunca o do dia a dia, que tem sessões logadas):
+
+```bash
+chromium --remote-debugging-port=9222 --user-data-dir="$HOME/Work/re/chromium-cdp"
 ```
 
 ```text
-Com o REA, analise o dist/ deste build e diga quais rotas, endpoints e
-variáveis de ambiente o navegador recebe.
+Use o REA no navegador em http://127.0.0.1:9222, aba de <https://site>. Só observe:
+eu navego, você registra. Pergunta: como a página monta a requisição de <busca> e
+de onde vem o token. Âncora: <endpoint ou texto>. Entregue o passo a passo com
+arquivo JS e linha de cada etapa, e um esboço do bookmarklet.
 ```
+
+Para o agente agir sozinho (clicar, preencher), peça um `capture_browser_scenario` em modo launch, que abre um navegador temporário e diz exatamente quais ações fez.
+
+**O que um build nosso entrega ao navegador** (na sessão do próprio repositório):
 
 ```text
-Com o REA, compare a versão 1.2 e a 1.3 deste app e liste o que mudou no login.
+Use o REA no dist/ deste repositório (caminho absoluto). Pergunta: o que o navegador
+recebe que não deveria: rotas internas, endpoints de admin, valores de process.env,
+chaves, source maps publicados. Entregue a lista com arquivo e trecho, e a correção
+no código ou no build para cada item.
 ```
 
-Os 6 prompts guiados do MCP aparecem no Claude Code como comandos `/mcp__rea__<nome>`:
+**Binário nativo com o Ghidra** (ELF, firmware com ELF, ferramenta fechada):
+
+```text
+Use o REA com o Ghidra em /caminho/absoluto/binario. Pergunta: <o que a função X faz |
+onde o binário valida Y>. Âncora: <string de log ou da tela>. Mantenha o binário
+aberto até o fim das perguntas; ao fechar, salve o snapshot em
+~/Work/re/<alvo>/snapshots/. Entregue o pseudocódigo comentado e o que ficou desconhecido.
+```
+
+A auto-análise roda a cada sessão nova que abre o binário, e o snapshot não evita isso. No `/usr/bin/true` (43 KB) ela leva uns 20 s e ocupa mais de um núcleo da CPU; num ELF de vários MB, como o `jade.elf` (Xtensa), deve levar bem mais, mas isso ainda não foi medido. Por isso, junte todas as perguntas sobre o binário numa sessão só.
+
+**Duas versões do mesmo alvo:**
+
+```text
+Use o REA em <versão antiga> e <versão nova> (caminhos absolutos). Pergunta: o que
+mudou em <área>? Use o prompt compare_application_versions e entregue só as
+diferenças, com evidência.
+```
+
+### 5.4. Prompts guiados do MCP
+
+Os 6 prompts guiados aparecem no Claude Code como comandos `/mcp__rea__<nome>`. Eles montam o roteiro da investigação; você só completa o alvo e a pergunta:
 
 | Prompt                            | Para quê                                                  |
 | :-------------------------------- | :-------------------------------------------------------- |
@@ -180,7 +303,7 @@ Os 6 prompts guiados do MCP aparecem no Claude Code como comandos `/mcp__rea__<n
 | `audit_residual_unknowns`         | Listar o que ainda não foi provado                        |
 | `prepare_bounded_process_capture` | Planejar uma captura de processo antes de executar o alvo |
 
-### 5.2. Pelo terminal
+### 5.5. Pelo terminal
 
 A saída padrão é TOON, compacta para LLM; use `--json`, `--format yaml` ou `--format md`. Caminhos de alvo sempre absolutos. Exemplos reais, rodados no notebook em 03/11/2026:
 
@@ -207,9 +330,26 @@ rea decompile /usr/bin/true --procedure entry --provider ghidra --json
 
 Resultado: o pseudocódigo C do `entry`, a chamada a `__libc_start_main` com o `main` (`FUN_00102480`) e o laço final, com `provider` = Ghidra 12.1.2. O projeto do Ghidra é temporário: some ao fechar a sessão, e o binário original nunca é escrito. Pelo agente, o mesmo fluxo é `open_binary` (com `provider_id: ghidra`), `procedure_pseudo_code` e, no fim, `close_binary`, testado com o mesmo resultado; a sessão aberta continua entre um pedido e outro, então só a primeira chamada paga a auto-análise.
 
+> ⚠️ **O snapshot não guarda a análise do Ghidra** (testado em 04/11/2026, REA 6.8.0, no `/usr/bin/true`). Ele é um JSON pequeno (5,7 KB) com o provedor, o perfil de análise e as respostas já obtidas como Evidence. O banco do Ghidra fica de fora, e o projeto temporário é apagado ao fechar.
+>
+> - **Medido pela CLI:** `rea decompile` com `--snapshot` levou 25 s na primeira vez e 24 s repetindo a mesma consulta. A resposta veio com o mesmo `evidence_id`.
+> - **Medido pelo MCP:** o `open_binary` com `snapshot_path` abriu em 1 s. A mesma `procedure_pseudo_code` levou 22 s, e o Java do Ghidra subiu de novo. O `close_binary` gravou `primitive_entries: 0` e `evidence_records: 1`.
+> - **Para que serve:** guardar as respostas de uma sessão com a Evidence, para conferir depois ou usar no `verify_reconstruction`. Para ganhar tempo, a saída é manter a sessão aberta. Confira de novo depois de cada `rea update`.
+
+Como salvar e reabrir:
+
+```bash
+# CLI: --snapshot carrega o arquivo se ele existir e grava as respostas novas nele
+rea decompile /caminho/absoluto/binario --procedure entry --provider ghidra \
+  --snapshot ~/Work/re/<alvo>/snapshots/binario.json --json
+```
+
+- **No MCP, quem escolhe o caminho é você.** O `close_binary` recebe o `snapshot_path` (absoluto) e só sobrescreve um arquivo existente com `overwrite: true`. Para reabrir, passe o mesmo arquivo no `snapshot_path` do `open_binary`. O snapshot só carrega se o binário, o provedor e o perfil de análise forem os mesmos.
+- **Renomear ou comentar funções bloqueia o snapshot.** Depois de um `set_address_name` ou `set_comment`, o `close_binary` não grava mais o snapshot. Exporte com `export_evidence_bundle` antes de fechar.
+
 > 💾 **`--evidence_output` nunca sobrescreve** e é obrigatório com `--detail summary`: use um nome novo a cada análise. **Não grave Evidence dentro do `~/Drive`**: o drive-sync manda tudo para a nuvem na rodada seguinte, inclusive análises de apps de terceiros.
 
-### 5.3. Firmware ESP32 (na próxima release)
+### 5.6. Firmware ESP32 (na próxima release)
 
 Roteiro da documentação do `main`, ainda **não testado aqui** porque a 6.8.0 não tem o leitor:
 
@@ -299,6 +439,7 @@ O `uninstall` não mexe no Node, nas Evidence, nas capturas, em outras skills ne
 | `env: node: No such file or directory` no log do MCP            | O agente subiu sem o Node do mise no PATH                                   | Abra o agente a partir de um shell com o mise ativo e rode o `setup` de novo                                 |
 | `npm install` parado muito tempo compilando                     | O download do binário do Frida falhou e o script caiu no `make`             | `Ctrl+C` e `npm install --global rea-agents --ignore-scripts`                                                |
 | Dois servidores `rea` no `/mcp`                                 | Plugin e `setup` instalados juntos                                          | Fique com um: `claude plugin uninstall rea@rea` ou `rea uninstall`                                           |
+| Ghidra refaz a auto-análise mesmo reabrindo com snapshot        | O snapshot guarda respostas e Evidence, não o banco do Ghidra (6.8.0)       | Faça todas as perguntas numa sessão só e feche no fim ([Parte 5.5](#55-pelo-terminal))                       |
 
 ---
 
