@@ -16,7 +16,7 @@ A stack pronta está em [`assets/stacks/authelia.yml`](../assets/stacks/authelia
 | `authelia`       | login, sessão, políticas, MFA       | `9091` (API/authz)          |
 | `authelia-redis` | guarda as sessões do Authelia       | `6379`                      |
 
-Os três ficam só na rede `auth-net` (não na `caddy-net` dos apps): só o Caddy os alcança.
+`lldap` e `authelia` ficam só na rede `auth-net` (não na `caddy-net` dos apps): só o Caddy os alcança. O `authelia-redis` fica ainda mais fechado, na rede interna `auth-redis-net`, onde só o `authelia` entra: a chave de cada sessão no Redis é o próprio valor do cookie, então quem lê o Redis entra como qualquer usuário logado, já com 2FA. Por isso ele não tem senha: o único container que alcança a porta é o Authelia, que já guarda todos os segredos.
 
 ## Parte 1: Rede e pastas (via SSH, uma vez)
 
