@@ -59,8 +59,11 @@ services:
   # Authelia, e cada recriação do container (redeploy, update de imagem, reboot)
   # deslogava todo mundo, até quem marcou "Lembrar-me". O dump.rdb em /data
   # sobrevive à recriação: o Redis grava no disco ao receber o SIGTERM.
-  # Sem senha de propósito: na auth-net só estão authelia, lldap e caddy, e o
-  # Caddy já vê o cookie de sessão de toda requisição que passa por ele.
+  # Fica fora da auth-net, numa rede interna só com o Authelia. A chave de cada
+  # sessão no Redis é o próprio valor do cookie (prefixo authelia-session), então
+  # quem lê o Redis entra como qualquer usuário logado, já com 2FA; os dados vão
+  # criptografados com o AUTHELIA_SESSION_SECRET, mas a chave não. Só o Authelia
+  # alcança a porta, e ele já tem todos os segredos: senha no Redis não somaria nada.
   authelia-redis:
     image: redis:8-alpine
     container_name: authelia-redis
@@ -81,7 +84,7 @@ services:
       retries: 3
       start_period: 5s
     networks:
-      - auth-net
+      - auth-redis-net
     logging:
       driver: "json-file"
       options:
@@ -120,7 +123,8 @@ services:
       - "9091"                                # NÃO publicar no host
     # Usa o HEALTHCHECK embutido da imagem (/api/health).
     networks:
-      - auth-net
+      - auth-net                              # Caddy e lldap
+      - auth-redis-net                        # só o authelia-redis
     logging:
       driver: "json-file"
       options:
@@ -131,3 +135,8 @@ networks:
   auth-net:
     name: auth-net
     external: true                            # criada antes: docker network create auth-net
+  # Authelia <-> Redis. internal: sem saída para a internet, que o Redis não usa.
+  auth-redis-net:
+    name: auth-redis-net
+    driver: bridge
+    internal: true
