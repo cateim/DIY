@@ -21,7 +21,10 @@
 set -uo pipefail
 
 readonly LG_DESC='LG Electronics LG ULTRAWIDE 0x0003B53D'
-readonly CM_CMDLINE='/usr/lib/rustdesk/rustdesk --cm'
+# O [k] fica de fora da linha de comando do próprio pgrep: o --service do RustDesk toma qualquer
+# processo com "<caminho do rustdesk> --cm" na linha de comando por uma sessão, e reinicia o
+# --server quando ele some (veja CM_PGREP no rustdesk-tela-unica).
+readonly CM_PGREP='/usr/lib/rustdesk/rustdes[k] --cm'
 readonly TOGGLE='screensaver-off'
 readonly MARCA_PROTETOR="$HOME/.local/state/vnc-sessao/protetor-desligado"
 # Deixada pelo rustdesk-tela-unica quando não religou o LG por causa do VNC. Mesmo caminho lá.
@@ -43,7 +46,7 @@ lg_ligado() {
 }
 
 sessao_rustdesk() {
-  pgrep -xf "$CM_CMDLINE" >/dev/null
+  pgrep -xf "$CM_PGREP" >/dev/null
 }
 
 clientes_vnc() {  # imprime quantos clientes o wayvnc tem agora (0 se ele não responder)
