@@ -205,6 +205,14 @@ A stack está em [`assets/stacks/cortendesk.yml`](../assets/stacks/cortendesk.ym
 > sessão passa pelo **relay** (hbbr). Latência e banda dependem do relay na VPS (a Free Tier da Oracle tem cota
 > de egress). Transferência de arquivo funciona; áudio e alguns codecs são limitados vs. o app nativo.
 
+> ⌨️ **Tecla Win, Alt+Tab e atalhos SUPER:** use a **tela cheia do botão da própria sessão**, nunca o F11. Só
+> nela o CortenDesk chama `navigator.keyboard.lock()`, e o Chrome e o Edge passam a entregar à página as teclas
+> que o Windows guardaria; a Win chega ao remoto como `MetaLeft` (SUPER no Linux). Win+L e Ctrl+Alt+Del
+> continuam com o Windows local, e para sair segure Esc. O CapsLock, o NumLock e o ScrollLock **nunca** vão
+> como tecla, só o estado de cada um (`webclient/src/input/mouse-keyboard.ts`, `LOCK_CODES`), então trocar
+> uma delas por SUPER no computador remoto não funciona pelo CortenDesk. Testado em 05/11/2026 (Windows do
+> trabalho para o notebook com Hyprland).
+
 ## Parte 7: Desativar o servidor Windows
 
 Depois de validar que os clientes conectam pela VPS (registram, conectam e a sessão abre), pare o serviço do
