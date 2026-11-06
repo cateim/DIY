@@ -44,6 +44,7 @@
 
 # ---- Acesso remoto (wayvnc) ----
 ~/.config/wayvnc/config
+~/.config/xkb/symbols/brvnc
 ~/.config/systemd/user/wayvnc.service
 ~/.local/bin/vnc-trocar-tela
 

@@ -1,0 +1,13 @@
+// Brazilian ABNT2 for the wayvnc virtual keyboard only: CapsLock keeps the
+// Caps_Lock keysym (so keysym-mode clients still find it) but acts as Super.
+default partial alphanumeric_keys modifier_keys
+xkb_symbols "super_caps" {
+    include "br(abnt2)"
+    name[Group1] = "Portuguese (Brazil, VNC, CapsLock as Super)";
+    key <CAPS> {
+        type[Group1] = "ONE_LEVEL",
+        symbols[Group1] = [ Caps_Lock ],
+        actions[Group1] = [ SetMods(modifiers=Mod4) ]
+    };
+    modifier_map Mod4 { <CAPS> };
+};
