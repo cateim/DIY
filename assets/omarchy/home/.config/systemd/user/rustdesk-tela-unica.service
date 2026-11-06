@@ -1,0 +1,12 @@
+[Unit]
+Description=RustDesk: desliga o LG durante a sessão remota (mouse certo no cliente web)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/rustdesk-tela-unica
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=graphical-session.target

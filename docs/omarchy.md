@@ -76,20 +76,20 @@ Placeholders do espelho:
 
 | Arquivo | O que muda |
 | :--- | :--- |
-| `bindings.lua` | `SUPER + E` abre o Nautilus. `SUPER + SHIFT + E` e `SUPER + SHIFT + C` abrem Gmail e Google Agenda no lugar do HEY. `SUPER + H` abre o histórico da área de transferência. `SUPER + SHIFT + S` tira print de uma região (era o Google Maps). `CTRL + SHIFT + F12` troca o monitor do VNC. `SUPER + CTRL + ↑/↓` move a janela para o monitor de cima ou de baixo. `ALT + TAB` abre o switcher com miniaturas (submap `cateim-switcher`), menos no Windows VM, onde o Alt+Tab vai para o Windows. |
+| `bindings.lua` | `SUPER + E` abre o Nautilus. `SUPER + SHIFT + E` e `SUPER + SHIFT + C` abrem Gmail e Google Agenda no lugar do HEY. `SUPER + H` abre o histórico da área de transferência. `SUPER + SHIFT + S` tira print de uma região (era o Google Maps). `CTRL + SHIFT + F12` troca o monitor do VNC. `SUPER + CTRL + ↑/↓` move a janela para o monitor de cima ou de baixo. `ALT + TAB` abre o switcher com miniaturas (submap `cateim-switcher`), menos no Windows VM, onde o Alt+Tab vai para o Windows. Desde a migração do Omarchy 4.5, `SUPER + CTRL + X` e `F9` (segurando) ligam o ditado do voxtype; a 4.5 também liga `ALT + ESPAÇO` e o Alt direito, que no `us intl` e no `br` é AltGr e não dispara o atalho. |
 | `hyprland.lua` | O Bitwarden (app e janela da extensão no Chrome) volta a aparecer em captura de tela, para aprovar login pelo VNC e pelo RustDesk. Efeito colateral: aparece também em compartilhamento de tela e gravação. |
 | `input.lua` | Teclado `us` (intl) e `br`; rolagem natural só no touchpad. |
-| `monitors.lua` | LG UltraWide 2560x1080@75 em cima (`0x0`) e a tela do notebook 2560x1440@120, escala 1,25, embaixo (`256x1080`); GDK scale 1. |
+| `monitors.lua` | Tela do notebook 2560x1440@120, escala 1,25, na origem (`0x0`), e o LG UltraWide 2560x1080@75 em cima, centralizado (`-256x-1080`). O LG tem duas regras iguais, pela descrição e pela porta `HDMI-A-4`: desde o Omarchy 4.5 o painel Display religa a tela pelo nome e mantém modo e posição da regra com esse nome; só com a regra pela descrição o LG voltava à direita, a 60 Hz. `omarchy_gdk_scale` e `omarchy_monitor_scale` são do controle de escala do Omarchy e só valem para o `GDK_SCALE` e para tela sem regra própria. O notebook fica em `0x0` por causa do RustDesk: o `xdg-desktop-portal-hyprland` informa toda tela compartilhada em `(0,0)`, e com o notebook em outra posição o mouse remoto caía no LG. Numa sessão do RustDesk o LG fica desligado (veja `rustdesk-tela-unica` na Parte 3.6). |
 
 ### 3.2 Shell do Omarchy (`~/.config/omarchy/`)
 
 | Arquivo | O que muda |
 | :--- | :--- |
-| `shell.json` | Barra com a janela ativa à esquerda e o layout de teclado (`cateim.keyboard-layout`) e o Tailscale à direita. Bloqueio da tela em 30 min (era 5) e descanso de tela em 10 min (era 2,5). Liga o plugin `cateim.window-switcher`. |
+| `shell.json` | Barra com a janela ativa à esquerda e o layout de teclado (`cateim.keyboard-layout`) e o Tailscale à direita. Bloqueio da tela em 30 min (era 5) e descanso de tela em 10 min (era 2,5). Liga o plugin `cateim.window-switcher`. Desde a 4.5 o centro da barra tem `centerBegin` (indicadores), o relógio e `centerEnd` (Elsewhen, clima e atualizações). |
 | `shell.toml` | Fonte base 12. |
 | `defaults/agent` | Agente padrão do Omarchy: `claude`. |
 | `themed/chromium.theme.tpl` | Modelo de tema do Chromium trocado por `0,0,0`. |
-| `plugins/cateim.keyboard-layout/` | Clone do `omarchy.keyboard-layout` que troca o layout em todos os teclados de uma vez (`hyprctl switchxkblayout all`). O notebook, o uinput do RustDesk e o teclado virtual do wayvnc tinham cada um o seu. |
+| `plugins/cateim.keyboard-layout/` | Clone do `omarchy.keyboard-layout` que troca o layout em todos os teclados de uma vez (`hyprctl switchxkblayout all`). O notebook, o uinput do RustDesk e o teclado virtual do wayvnc tinham cada um o seu. O widget original da 4.5 passou a trocar todos os teclados com a mesma lista de layouts e ganhou método de entrada (fcitx5); o `vigia-omarchy` acompanha a diferença. |
 | `plugins/cateim.window-switcher/` | Alt+Tab com miniaturas ao vivo, na ordem de uso, no monitor focado. Mudança no QML só vale depois de `omarchy restart shell`. |
 
 ### 3.3 Terminal e prompt
@@ -121,7 +121,7 @@ Placeholders do espelho:
 | `~/.config/mimeapps.list` | Apps padrão, sem o HEY no `mailto`. |
 | `~/.config/user-dirs.dirs` | Área de trabalho, Modelos e Público apontam para a home, para não criar pastas vazias. |
 | `~/.config/gtk-3.0/bookmarks` | Favoritos do Nautilus: Drive, GitHub, Documentos, NAS e o backup do Windows. |
-| `~/.config/mise/config.toml` | Ferramentas globais do mise: claude, codex, gemini, gh e Node 26.13.0. |
+| `~/.config/mise/config.toml` | Só `[settings.upgrade]` desde a migração do Omarchy 4.5: claude, codex, gh e o Node vêm de `/etc/mise/conf.d/omarchy-tools.toml`, do Omarchy. O gemini segue no PATH. |
 | `~/.config/autostart/bitwarden.desktop` | O Bitwarden abre no login. |
 | `~/.local/share/applications/sideswap.desktop` | Atalho do SideSwap (AppImage em `~/Applications`, baixado à mão). |
 
@@ -133,6 +133,7 @@ Placeholders do espelho:
 | `~/.config/xkb/symbols/brvnc` | Layout só do teclado virtual do wayvnc: ABNT2 em que o CapsLock mantém o keysym `Caps_Lock` mas age como SUPER. No navegador do Windows a tecla Win fica com o sistema e o CapsLock chega, então os atalhos SUPER do Hyprland funcionam pelo VNC da Cloudflare. O teclado físico do notebook não muda. |
 | `~/.config/systemd/user/wayvnc.service` | wayvnc só em `127.0.0.1:5900`, na tela do notebook. |
 | `~/.local/bin/vnc-trocar-tela` | Troca o monitor que o wayvnc transmite (`CTRL + SHIFT + F12`). |
+| `~/.local/bin/rustdesk-tela-unica` e `~/.config/systemd/user/rustdesk-tela-unica.service` | Desliga o LG enquanto houver sessão do RustDesk e religa com `hyprctl reload` quando a última fecha (o processo `rustdesk --cm` some). Com duas telas no Wayland, o servidor do RustDesk 1.5.1 espera o mouse em coordenada lógica (escala 1,25) e o cliente web (CortenDesk) manda a física, então o cursor errava cada vez mais para o canto de baixo à direita. O desligar sai do log do servidor (`tail -F` no `rustdesk_rCURRENT.log`, linha `create_relay requested` ou `Connection opened`), uns 400 ms antes de o servidor guardar o arranjo de telas da sessão: se o LG só sumisse depois, o servidor converteria o mouse do arranjo antigo para o novo e o erro voltaria até a captura reiniciar. Pedido sem sessão em 90 s religa o LG. Se o mouse errar mesmo assim, o **Refresh video** do CortenDesk reinicia a captura e acerta. As janelas do LG passam para outra área de trabalho do notebook durante a sessão. Ao desligar o LG, uma notificação diz o IP da conexão (uma sessão esquecida aberta não fica invisível). Ligar o LG à mão pelo painel depois dos primeiros 20 s da sessão vale até ela fechar, e o mouse do cliente web pode errar nesse tempo; antes disso o serviço insiste, porque no começo da sessão o LG às vezes religa sozinho. |
 | `~/.local/bin/drive-sync.sh` e `~/.config/systemd/user/drive-sync.{service,timer}` | rclone bisync do `~/Drive` com o Google Drive a cada 15 minutos, só com o `/home` do Crucial montado. |
 
 ### 3.7 Sistema (`/etc`, com `install.sh --system`)
@@ -146,6 +147,14 @@ Placeholders do espelho:
 | `/etc/udev/rules.d/*.rules` (7 arquivos) | Carteiras de hardware: Ledger (`20-hw1`), Coldcard (`51-coinkite`), Trezor, KeepKey, BitBox02 e Jade. |
 
 ---
+
+### 3.8 Vigia das atualizações do Omarchy
+
+| Arquivo | O que muda |
+| :--- | :--- |
+| `~/.local/bin/vigia-omarchy` | Guarda uma cópia dos arquivos do Omarchy de que as personalizações dependem e a versão dos pacotes que importam (`~/.local/state/vigia-omarchy/base/`). A cada execução compara, grava o que mudou com o diff em `~/.local/state/vigia-omarchy/relatorio.txt` e manda uma notificação; também acusa erro na config do Hyprland, atalho repetido e plugin `cateim.*` desligado. Depois de revisar o relatório: `vigia-omarchy aceitar`. A base não vai para o DIY: numa máquina nova a primeira execução grava a base sem avisar. Nasceu na 4.5, que deixou o clone do keyboard-layout para trás e mudou o religar do painel Display sem aviso nenhum. |
+| `~/.config/vigia-omarchy/vigiados.conf` | O que vigiar, uma linha por item (`arquivo` ou `pacote`, o alvo e a personalização afetada): clone do keyboard-layout, painel Display, peças do shell que o window-switcher usa, tema do Chromium, modelos de onde saíram os arquivos do `~/.config`, o `omarchy-tools.toml` do mise, a unit do RustDesk e os pacotes rustdesk, hyprland, xdg-desktop-portal-hyprland, quickshell, wayvnc e rclone. |
+| `~/.config/omarchy/hooks/post-update.d/vigia-omarchy` e `post-boot.d/vigia-omarchy` | Rodam o vigia dentro do `omarchy update`, depois das migrações, e a cada início da sessão, que pega o que mudou fora do update ou depois do hook (AUR e mise). |
 
 ## Parte 4: Pacotes
 
@@ -235,6 +244,7 @@ Vale para toda personalização nova, mudada ou removida no notebook, na mesma s
 2. Arquivo novo: uma linha no `files.txt`. Removeu: tire a linha.
 3. Rode `assets/omarchy/export.sh`. Se ele acusar segredo, ponha o valor no `private.env` (e o nome em `PLACEHOLDER_KEYS` do `export.sh`, se for chave nova).
 4. Atualize a tabela certa deste guia (Parte 3, 4 ou 5) e o `[Unreleased]` do [`CHANGELOG.md`](../CHANGELOG.md).
+   Se a personalização copia algo do Omarchy ou depende de um comportamento dele, ponha uma linha no `~/.config/vigia-omarchy/vigiados.conf` e rode `vigia-omarchy` uma vez.
 5. Valor novo no `private.env`: atualize a nota do Bitwarden.
 6. Commit com escopo `omarchy`, por exemplo `docs(omarchy): add the window switcher plugin`.
 
@@ -250,6 +260,8 @@ Vale para toda personalização nova, mudada ou removida no notebook, na mesma s
 | Plugin do shell não muda depois do install | Plugin `keepLoaded` e o cache de componente do QML | `omarchy restart shell`. |
 | Alt+Tab não confirma ao soltar o Alt | Bind de soltar sem `submap_universal` ou `transparent` | Veja o comentário do bloco no `bindings.lua` (Hyprland 0.56.2, `KeybindManager.cpp:652` e `:867`). |
 | Teclado preso no switcher | Submap `cateim-switcher` ativo | `hyprctl dispatch 'hl.dsp.submap("reset")'`. |
+| LG não volta pelo painel Display | Sessão do RustDesk aberta (o CortenDesk reconecta sozinho depois de um `Timeout`) | A notificação do `rustdesk-tela-unica` diz o IP. Feche a sessão na janela do RustDesk ou ligue o LG de novo depois de 20 s. |
+| LG volta à direita, a 60 Hz | Regra `HDMI-A-4` fora do `monitors.lua`, ou o painel Display mudou | `hyprctl reload` e veja o relatório do `vigia-omarchy`. |
 | Git pede senha do GitHub | Caminho velho do `gh` nas linhas `credential` | `gh auth setup-git`. |
 
 ---
