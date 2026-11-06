@@ -124,6 +124,7 @@ Placeholders do espelho:
 | `~/.config/mise/config.toml` | Só `[settings.upgrade]` desde a migração do Omarchy 4.5: claude, codex, gh e o Node vêm de `/etc/mise/conf.d/omarchy-tools.toml`, do Omarchy. O gemini segue no PATH. |
 | `~/.config/autostart/bitwarden.desktop` | O Bitwarden abre no login. |
 | `~/.local/share/applications/sideswap.desktop` | Atalho do SideSwap (AppImage em `~/Applications`, baixado à mão). |
+| `~/.local/bin/icones-pastas` | Ícone próprio de cada pasta de `~/Drive/GitHub` no Nautilus. O ícone de uma pasta é o arquivo com o mesmo nome em `~/.local/share/icons/pastas/` (`tasmota-ir.png` vale para a pasta `tasmota-ir`), e o script grava o `metadata::custom-icon` do gvfs a partir deles. O Nautilus só relê um ícone trocado no mesmo caminho depois de `nautilus -q`; fechar a janela não basta, porque o processo continua aberto. A pasta dos ícones fica fora do espelho por decisão: tem logos e nomes de projetos de cliente (veja a Parte 5). |
 
 ### 3.6 Acesso remoto e Drive
 
@@ -154,7 +155,7 @@ Placeholders do espelho:
 | Arquivo | O que muda |
 | :--- | :--- |
 | `~/.local/bin/vigia-omarchy` | Guarda uma cópia dos arquivos do Omarchy de que as personalizações dependem e a versão dos pacotes que importam (`~/.local/state/vigia-omarchy/base/`). A cada execução compara, grava o que mudou com o diff em `~/.local/state/vigia-omarchy/relatorio.txt` e manda uma notificação; também acusa erro na config do Hyprland, atalho repetido, plugin `cateim.*` desligado e o shell do Omarchy ainda rodando o código de antes da atualização. Depois de revisar o relatório: `vigia-omarchy aceitar`. A base não vai para o DIY: numa máquina nova a primeira execução grava a base sem avisar. Nasceu na 4.5, que deixou o clone do keyboard-layout para trás e mudou o religar do painel Display sem aviso nenhum. |
-| `~/.config/vigia-omarchy/vigiados.conf` | O que vigiar, uma linha por item (`arquivo` ou `pacote`, o alvo e a personalização afetada): painel Display, lançador do protetor de tela e serviço de ociosidade do shell (de que o `vnc-sessao` depende), peças do shell que o window-switcher usa, tema do Chromium, modelos de onde saíram os arquivos do `~/.config`, o `omarchy-tools.toml` do mise, a unit do RustDesk e os pacotes rustdesk, hyprland, xdg-desktop-portal-hyprland, quickshell, wayvnc e rclone. |
+| `~/.config/vigia-omarchy/vigiados.conf` | O que vigiar, uma linha por item (`arquivo` ou `pacote`, o alvo e a personalização afetada): painel Display, lançador do protetor de tela e serviço de ociosidade do shell (de que o `vnc-sessao` depende), peças do shell que o window-switcher usa, tema do Chromium, modelos de onde saíram os arquivos do `~/.config`, o `omarchy-tools.toml` do mise, a unit do RustDesk e os pacotes rustdesk, hyprland, xdg-desktop-portal-hyprland, quickshell, wayvnc, rclone e nautilus (ícones das pastas). |
 | `~/.config/omarchy/hooks/post-update.d/vigia-omarchy` e `post-boot.d/vigia-omarchy` | Rodam o vigia dentro do `omarchy update`, depois das migrações, e a cada início da sessão, que pega o que mudou fora do update ou depois do hook (AUR e mise). |
 
 ## Parte 4: Pacotes
@@ -236,6 +237,14 @@ Tudo o que não é arquivo do espelho, na ordem em que faz sentido numa reinstal
     ```
 
     O primeiro `ssh` depois do login pede a senha e deixa a chave no agente até reiniciar ou sair da sessão. Para ver o que está carregado: `SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/ssh-agent.socket ssh-add -l`.
+
+13. **Ícones das pastas** (depois do `~/Drive`, passo 2): ponha de volta a sua cópia de `~/.local/share/icons/pastas/` e rode:
+
+    ```bash
+    icones-pastas && nautilus -q
+    ```
+
+    A pasta dos ícones não está no DIY porque tem logos e nomes de projetos de cliente. O metadata do gvfs (`~/.local/share/gvfs-metadata/`) também fica de fora: é binário e guarda o estado de todos os arquivos, não só o dos ícones.
 
 ---
 
