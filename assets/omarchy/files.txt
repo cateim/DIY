@@ -47,6 +47,7 @@
 ~/.config/mise/config.toml
 ~/.config/autostart/bitwarden.desktop
 ~/.local/share/applications/sideswap.desktop
+~/.local/bin/icones-pastas
 
 # ---- Acesso remoto (wayvnc) ----
 ~/.config/wayvnc/config

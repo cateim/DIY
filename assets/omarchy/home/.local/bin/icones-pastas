@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# icones-pastas: põe no Nautilus o ícone próprio de cada pasta de ~/Drive/GitHub
+#
+# O ícone de uma pasta é o arquivo com o mesmo nome em ~/.local/share/icons/pastas/
+# (tasmota-ir.png vale para ~/Drive/GitHub/tasmota-ir). O Nautilus guarda a escolha
+# no metadata::custom-icon do gvfs, um banco binário que não vai para o DIY; este
+# script refaz esse metadata a partir dos arquivos.
+#
+# Uso: icones-pastas, depois nautilus -q (o Nautilus só relê o ícone ao reiniciar,
+# mesmo com a imagem trocada no mesmo caminho).
+# Ícone novo ou trocado: salve <pasta>.<extensão> na pasta dos ícones e rode de novo.
+# ==============================================================================
+set -euo pipefail
+
+ICONS_DIR="$HOME/.local/share/icons/pastas"
+FOLDERS_DIR="$HOME/Drive/GitHub"
+
+main() {
+  local icon name folder applied=0 orphans=0
+  shopt -s nullglob
+  for icon in "$ICONS_DIR"/*; do
+    name=$(basename "${icon%.*}")
+    folder="$FOLDERS_DIR/$name"
+    if [[ ! -d $folder ]]; then
+      echo "aviso: $folder não existe, $(basename "$icon") ficou sem pasta" >&2
+      orphans=$((orphans + 1))
+      continue
+    fi
+    gio set "$folder" metadata::custom-icon "file://$icon"
+    applied=$((applied + 1))
+  done
+  echo "icones-pastas: $applied pastas com ícone, $orphans ícones sem pasta."
+}
+
+main "$@"
