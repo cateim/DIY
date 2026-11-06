@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+# Avisa quando mudou alguma coisa do Omarchy, ou um pacote, de que uma personalização deste
+# notebook depende.
+# Por quê: um clone de plugin ou um arquivo copiado do Omarchy não recebe as melhorias do
+# original, e algumas personalizações contam com um comportamento que uma versão nova pode trocar.
+# Na 4.5 (05/11/2026) o clone cateim.keyboard-layout ficou para trás e o painel Display mudou o
+# jeito de religar a tela, e nada avisou. Sem isto, só se descobre quando quebra.
+# Como: guarda uma cópia de cada arquivo vigiado e a versão de cada pacote vigiado em
+# ~/.local/state/vigia-omarchy/base/. Cada execução compara com o atual, escreve o que mudou (com
+# o diff) em ~/.local/state/vigia-omarchy/relatorio.txt e manda uma notificação. Também confere
+# erros na config do Hyprland, atalhos repetidos e se os plugins cateim.* seguem ligados.
+# Quando roda: hooks post-update (dentro do "omarchy update", depois das migrações) e post-boot
+# (pega o que o update atualiza depois do hook: pacotes do AUR e o mise).
+# Uso:
+#   vigia-omarchy           confere; item novo na lista entra na base calado
+#   vigia-omarchy aceitar   depois de revisar o relatório, grava o estado atual como base
+# O que vigiar: ~/.config/vigia-omarchy/vigiados.conf.
+set -uo pipefail
+
+readonly LISTA="$HOME/.config/vigia-omarchy/vigiados.conf"
+readonly ESTADO="$HOME/.local/state/vigia-omarchy"
+readonly BASE="$ESTADO/base"
+readonly RELATORIO="$ESTADO/relatorio.txt"
+
+avisos=()
+
+notificar() {  # $1: título, $2: texto
+  notify-send -a vigia-omarchy -i dialog-warning "$1" "$2" 2>/dev/null || true
+}
+
+registrar() {  # $1: resumo de uma linha, $2: detalhe (opcional)
+  avisos+=("$1")
+  {
+    echo "== $1"
+    if [[ -n ${2:-} ]]; then echo "$2"; fi
+    echo
+  } >>"$RELATORIO.novo"
+}
+
+itens() {  # tipo|alvo|motivo de cada linha útil da lista
+  grep -vE '^[[:space:]]*(#|$)' "$LISTA"
+}
+
+base_do_arquivo() { echo "$BASE/arquivos$1"; }
+base_do_pacote() { echo "$BASE/pacotes/$1"; }
+
+versao_do_pacote() {
+  local versao
+  versao=$(pacman -Q "$1" 2>/dev/null | cut -d' ' -f2)
+  echo "${versao:-ausente}"
+}
+
+gravar_arquivo() {  # $1: caminho
+  local base
+  base=$(base_do_arquivo "$1")
+  if [[ -f $1 ]]; then
+    mkdir -p "$(dirname "$base")" && cp -- "$1" "$base"
+  else
+    rm -f -- "$base"
+  fi
+}
+
+gravar_pacote() {  # $1: pacote
+  local base
+  base=$(base_do_pacote "$1")
+  mkdir -p "$(dirname "$base")" && versao_do_pacote "$1" >"$base"
+}
+
+conferir_arquivo() {  # $1: caminho, $2: motivo
+  local base
+  base=$(base_do_arquivo "$1")
+  if [[ ! -f $base ]]; then
+    if [[ -f $1 ]]; then gravar_arquivo "$1"; fi
+    return
+  fi
+  if [[ ! -f $1 ]]; then
+    registrar "SUMIU $1. Afeta: $2"
+  elif ! cmp -s "$base" "$1"; then
+    registrar "MUDOU $1. Afeta: $2" "$(diff -u "$base" "$1")"
+  fi
+}
+
+conferir_pacote() {  # $1: pacote, $2: motivo
+  local base antiga atual
+  base=$(base_do_pacote "$1")
+  if [[ ! -f $base ]]; then
+    gravar_pacote "$1"
+    return
+  fi
+  antiga=$(<"$base")
+  atual=$(versao_do_pacote "$1")
+  if [[ $antiga != "$atual" ]]; then
+    registrar "PACOTE $1: $antiga -> $atual. Afeta: $2"
+  fi
+}
+
+conferir_hyprland() {
+  local erros repetidos
+  erros=$(hyprctl configerrors 2>/dev/null | grep -v '^[[:space:]]*$')
+  if [[ -n $erros ]]; then registrar "ERRO na config do Hyprland" "$erros"; fi
+  # Um atalho padrão novo do Omarchy pode cair em cima de um dos seus (o Alt+Tab, por exemplo).
+  # Só os de tecla com nome: os por código (code:10) vêm sem tecla no JSON e não dá para comparar.
+  repetidos=$(hyprctl binds -j 2>/dev/null | jq -r '
+    [.[] | select(.key != "")]
+    | group_by([.modmask, .key, .submap, .release, .longPress])
+    | map(select(length > 1))[]
+    | "mod=\(.[0].modmask) \(.[0].key) [\(.[0].submap)]: \([.[].description] | join(" / "))"')
+  if [[ -n $repetidos ]]; then registrar "ATALHOS REPETIDOS no Hyprland" "$repetidos"; fi
+}
+
+conferir_plugins() {
+  local lista dir id
+  if ! lista=$(omarchy-plugin-list --json 2>/dev/null); then
+    registrar "NÃO CONSEGUI listar os plugins (omarchy-plugin-list --json falhou)"
+    return
+  fi
+  for dir in "$HOME"/.config/omarchy/plugins/cateim.*/; do
+    [[ -d $dir ]] || continue
+    id=$(basename "$dir")
+    if ! jq -e --arg id "$id" 'any(.[]; .id == $id and .enabled == true)' <<<"$lista" >/dev/null; then
+      registrar "PLUGIN $id não aparece ligado (ou o formato de omarchy-plugin-list mudou)"
+    fi
+  done
+}
+
+conferir() {
+  local tipo alvo motivo quantos
+  mkdir -p "$ESTADO"
+  printf 'vigia-omarchy, %s, omarchy %s\n\n' "$(date '+%d/%m/%Y %H:%M')" "$(versao_do_pacote omarchy)" >"$RELATORIO.novo"
+  while IFS='|' read -r tipo alvo motivo; do
+    case $tipo in
+      arquivo) conferir_arquivo "$alvo" "$motivo" ;;
+      pacote) conferir_pacote "$alvo" "$motivo" ;;
+      *) registrar "LINHA INVÁLIDA em $LISTA: $tipo|$alvo" ;;
+    esac
+  done < <(itens)
+  conferir_hyprland
+  conferir_plugins
+  mv -- "$RELATORIO.novo" "$RELATORIO"
+
+  if (( ${#avisos[@]} == 0 )); then
+    echo "vigia-omarchy: nada mudou no que as personalizações usam"
+    return 0
+  fi
+  if (( ${#avisos[@]} == 1 )); then quantos="1 item"; else quantos="${#avisos[@]} itens"; fi
+  echo "vigia-omarchy: $quantos para revisar (relatório: $RELATORIO)"
+  printf '  %s\n' "${avisos[@]}"
+  notificar "Omarchy: $quantos para revisar" \
+    "Relatório em $RELATORIO. Depois de revisar, rode: vigia-omarchy aceitar"
+}
+
+aceitar() {
+  local tipo alvo motivo
+  while IFS='|' read -r tipo alvo motivo; do
+    case $tipo in
+      arquivo) gravar_arquivo "$alvo" ;;
+      pacote) gravar_pacote "$alvo" ;;
+    esac
+  done < <(itens)
+  echo "vigia-omarchy: base gravada com o estado atual (omarchy $(versao_do_pacote omarchy))"
+}
+
+main() {
+  if [[ ! -f $LISTA ]]; then
+    echo "vigia-omarchy: falta $LISTA" >&2
+    return 1
+  fi
+  case ${1:-conferir} in
+    conferir) conferir ;;
+    aceitar) aceitar ;;
+    *)
+      echo "uso: vigia-omarchy [conferir|aceitar]" >&2
+      return 2
+      ;;
+  esac
+}
+
+main "$@"

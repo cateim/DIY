@@ -20,6 +20,12 @@
 ~/.config/omarchy/plugins/cateim.keyboard-layout/
 ~/.config/omarchy/plugins/cateim.window-switcher/
 
+# ---- Vigia das atualizações do Omarchy (avisa quando muda o que as personalizações usam) ----
+~/.local/bin/vigia-omarchy
+~/.config/vigia-omarchy/vigiados.conf
+~/.config/omarchy/hooks/post-update.d/vigia-omarchy
+~/.config/omarchy/hooks/post-boot.d/vigia-omarchy
+
 # ---- Terminal e prompt ----
 ~/.bashrc
 ~/.config/starship.toml
@@ -47,6 +53,8 @@
 ~/.config/xkb/symbols/brvnc
 ~/.config/systemd/user/wayvnc.service
 ~/.local/bin/vnc-trocar-tela
+~/.local/bin/rustdesk-tela-unica
+~/.config/systemd/user/rustdesk-tela-unica.service
 
 # ---- Google Drive (drive-sync) ----
 ~/.local/bin/drive-sync.sh

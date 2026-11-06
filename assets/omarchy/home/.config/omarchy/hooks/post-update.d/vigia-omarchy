@@ -1,0 +1,5 @@
+#!/bin/bash
+# Confere se mudou algo do Omarchy, ou um pacote, de que uma personalização deste notebook depende.
+# O mesmo arquivo vai em post-update.d (dentro do omarchy update) e em post-boot.d (pega o que
+# mudou fora dele ou depois do hook). Detalhes em ~/.local/bin/vigia-omarchy.
+"$HOME/.local/bin/vigia-omarchy" || true
