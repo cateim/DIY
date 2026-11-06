@@ -19,6 +19,8 @@
 # até a sessão fechar, porque quem está na frente do notebook vale mais que o mouse remoto. Isso
 # só vale CARENCIA_S depois do primeiro desligar: no começo da sessão o LG às vezes religa
 # sozinho (09:12 e 16:22 de 05/11/2026, causa ainda desconhecida), e aí o serviço insiste.
+# Com alguém no VNC, o fim da sessão não religa o LG (o VNC só mostra o notebook): fica a marca
+# MARCA_RELIGAR, e o vnc-sessao religa quando o último cliente do VNC sair.
 # Roda como serviço: ~/.config/systemd/user/rustdesk-tela-unica.service.
 set -uo pipefail
 
@@ -30,6 +32,8 @@ readonly INTERVALO_S=2
 readonly ESPERA_SESSAO_S=90
 # Até aqui, contado do primeiro desligar, um LG ligado é o religar sozinho do começo da sessão.
 readonly CARENCIA_S=20
+# Mesmo caminho no vnc-sessao.
+readonly MARCA_RELIGAR="${XDG_RUNTIME_DIR:-/run/user/$UID}/lg-religar-depois-do-vnc"
 
 houve_sessao=false
 pedido_em=''      # $SECONDS do pedido que desligou o LG, enquanto a sessão não aparece
@@ -61,7 +65,17 @@ desligar_lg() {  # $1: o que disparou
   fi
 }
 
+vnc_conectado() {
+  local n
+  n=$(timeout 5 wayvncctl -j client-list 2>/dev/null | jq 'length' 2>/dev/null)
+  (( ${n:-0} > 0 ))
+}
+
 religar_lg() {  # $1: o que disparou
+  if vnc_conectado; then
+    touch "$MARCA_RELIGAR" && echo "$1: VNC conectado, o LG fica desligado (o vnc-sessao religa)"
+    return 0
+  fi
   hyprctl reload >/dev/null && echo "$1: LG religado (hyprctl reload)"
 }
 

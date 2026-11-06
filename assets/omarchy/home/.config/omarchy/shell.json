@@ -1,13 +1,53 @@
 {
-  "version": 1,
-  "idle": {
-    "screensaver": 600,
-    "lock": 1800
-  },
   "bar": {
-    "position": "top",
-    "transparent": true,
     "layout": {
+      "center": [
+        {
+          "format": "dddd HH:mm",
+          "formatAlt": "d MMMM 'W'ww yyyy",
+          "id": "omarchy.clock",
+          "verticalFormat": "HH\n—\nmm"
+        }
+      ],
+      "centerBegin": [
+        {
+          "id": "omarchy.indicators"
+        }
+      ],
+      "centerEnd": [
+        {
+          "cities": [
+            {
+              "name": "Sao Paulo",
+              "zone": "America/Sao_Paulo"
+            },
+            {
+              "name": "London",
+              "zone": "Europe/London"
+            },
+            {
+              "name": "Dubai",
+              "zone": "Asia/Dubai"
+            },
+            {
+              "name": "Tokyo",
+              "zone": "Asia/Tokyo"
+            },
+            {
+              "name": "Los Angeles",
+              "zone": "America/Los_Angeles"
+            }
+          ],
+          "hour24": true,
+          "id": "omarchy.elsewhen"
+        },
+        {
+          "id": "omarchy.weather"
+        },
+        {
+          "id": "omarchy.system-update"
+        }
+      ],
       "left": [
         {
           "id": "omarchy.menu"
@@ -17,14 +57,6 @@
         },
         {
           "id": "omarchy.active-window"
-        }
-      ],
-      "center": [
-        {
-          "id": "omarchy.clock",
-          "format": "dddd HH:mm",
-          "formatAlt": "d MMMM 'W'ww yyyy",
-          "verticalFormat": "HH\n—\nmm"
         }
       ],
       "right": [
@@ -56,50 +88,27 @@
           "id": "omarchy.power"
         }
       ],
-      "centerBegin": [
-        {
-          "id": "omarchy.indicators"
-        }
-      ],
-      "centerEnd": [
-        {
-          "id": "omarchy.elsewhen",
-          "cities": [
-            {
-              "name": "Sao Paulo",
-              "zone": "America/Sao_Paulo"
-            },
-            {
-              "name": "London",
-              "zone": "Europe/London"
-            },
-            {
-              "name": "Dubai",
-              "zone": "Asia/Dubai"
-            },
-            {
-              "name": "Tokyo",
-              "zone": "Asia/Tokyo"
-            },
-            {
-              "name": "Los Angeles",
-              "zone": "America/Los_Angeles"
-            }
-          ],
-          "hour24": true
-        },
-        {
-          "id": "omarchy.weather"
-        },
-        {
-          "id": "omarchy.system-update"
-        }
-      ]
-    }
+      "tray": []
+    },
+    "position": "top",
+    "transparent": true
+  },
+  "dock": {
+    "pinned": [
+      "org.gnome.Nautilus",
+      "foot",
+      "omacalc",
+      "omawrite"
+    ]
+  },
+  "idle": {
+    "lock": 1800,
+    "screensaver": 600
   },
   "plugins": [
     {
       "id": "cateim.window-switcher"
     }
-  ]
+  ],
+  "version": 1
 }

@@ -58,6 +58,12 @@ o.bind("CTRL + SHIFT + F12", "Switch VNC monitor", os.getenv("HOME") .. "/.local
 o.bind("SUPER + CTRL + UP", "Move window to monitor above", hl.dsp.window.move({ monitor = "u" }))
 o.bind("SUPER + CTRL + DOWN", "Move window to monitor below", hl.dsp.window.move({ monitor = "d" }))
 
+-- Igualar janelas, adicionado em 06/11/2026: SUPER + SHIFT + J deixa as colunas do
+-- workspace com a mesma largura e as linhas com a mesma altura, no layout tiling
+-- (dwindle). A tecla estava livre e fica ao lado do SUPER + J (Toggle window split).
+-- Como funciona e o limite: ~/.config/hypr/igualar-janelas.lua.
+o.bind("SUPER + SHIFT + J", "Equalize windows", require("hypr.igualar-janelas").equalize_workspace)
+
 -- Alt+Tab com miniaturas (plugin ~/.config/omarchy/plugins/cateim.window-switcher),
 -- adicionado em 03/11/2026. Substitui o Alt+Tab do Omarchy (era: focar a próxima
 -- janela e trazê-la para frente). O Hyprland segura as teclas no submap

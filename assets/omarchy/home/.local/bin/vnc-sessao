@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+# Enquanto houver alguém no VNC: não abre o protetor de tela e desliga o LG.
+# Por quê, o protetor: parado 10 minutos, o Omarchy abre o protetor animado, e o wayvnc passa a
+# mandar de 6,5 a 9,6 Mbps (pico de 27) pelo túnel da Cloudflare sem ninguém mexendo (medido em
+# 04/11/2026). Usa o interruptor do próprio Omarchy (omarchy-toggle screensaver-off, o mesmo do
+# menu): o omarchy-launch-screensaver não abre nada com ele ligado, e o bloqueio dos 30 minutos
+# continua igual. Só desliga o interruptor no fim se foi este serviço que ligou; a marca fica em
+# ~/.local/state/vnc-sessao/, para sobreviver a um reinício do serviço ou do notebook.
+# Por quê, o LG: o wayvnc só captura o eDP-1 (--output no wayvnc.service). Com o LG ligado, a
+# área de trabalho que está nele some de quem está no VNC. Desligado, as janelas dele vêm para o
+# notebook. Religa com "hyprctl reload", que relê o monitors.lua, como o rustdesk-tela-unica.
+# Com sessão do RustDesk aberta, quem religa é o rustdesk-tela-unica quando ela fecha. Se ela
+# fechar com alguém no VNC, ele não religa e deixa a marca MARCA_RELIGAR, e este serviço religa
+# quando o último cliente do VNC sair. O último acesso remoto a fechar religa o LG.
+# Se o LG for ligado à mão durante o VNC, fica ligado: o serviço só insiste nos primeiros
+# CARENCIA_S, porque no começo de uma sessão remota o LG já religou sozinho (05/11/2026).
+# Se o LG já estava desligado à mão antes de o VNC conectar, ele não religa no fim.
+# Eventos: wayvncctl --json event-receive (client-connected e client-disconnected trazem o
+# connection_count; com --wait e --reconnect, wayvnc-startup e wayvnc-shutdown a cada reinício).
+# Roda como serviço: ~/.config/systemd/user/vnc-sessao.service.
+set -uo pipefail
+
+readonly LG_DESC='LG Electronics LG ULTRAWIDE 0x0003B53D'
+readonly CM_CMDLINE='/usr/lib/rustdesk/rustdesk --cm'
+readonly TOGGLE='screensaver-off'
+readonly MARCA_PROTETOR="$HOME/.local/state/vnc-sessao/protetor-desligado"
+# Deixada pelo rustdesk-tela-unica quando não religou o LG por causa do VNC. Mesmo caminho lá.
+readonly MARCA_RELIGAR="${XDG_RUNTIME_DIR:-/run/user/$UID}/lg-religar-depois-do-vnc"
+readonly INTERVALO_S=2
+# Até aqui, contado do desligar, um LG ligado é o religar sozinho do começo da sessão.
+readonly CARENCIA_S=20
+
+ativo=false
+desligou_em=''        # $SECONDS do desligar do LG nesta sessão do VNC
+religar_no_fim=false  # foi este serviço que desligou o LG
+
+avisar() {  # $1: título, $2: texto
+  notify-send -a wayvnc -i preferences-desktop-remote-desktop "$1" "$2" 2>/dev/null || true
+}
+
+lg_ligado() {
+  hyprctl monitors -j | jq -e --arg d "$LG_DESC" 'any(.[]; .description == $d)' >/dev/null
+}
+
+sessao_rustdesk() {
+  pgrep -xf "$CM_CMDLINE" >/dev/null
+}
+
+clientes_vnc() {  # imprime quantos clientes o wayvnc tem agora (0 se ele não responder)
+  local n
+  n=$(timeout 5 wayvncctl -j client-list 2>/dev/null | jq 'length' 2>/dev/null)
+  echo "${n:-0}"
+}
+
+desligar_lg() {  # $1: o que disparou
+  hyprctl eval "hl.monitor({ output = \"desc:$LG_DESC\", disabled = true })" >/dev/null || return 1
+  echo "$1: LG desligado"
+}
+
+desligar_protetor() {
+  if omarchy-toggle-enabled "$TOGGLE"; then return 0; fi  # já desligado por você: não é meu
+  omarchy-toggle "$TOGGLE" on && mkdir -p "$(dirname "$MARCA_PROTETOR")" && touch "$MARCA_PROTETOR" &&
+    echo "protetor de tela desligado"
+}
+
+devolver_protetor() {
+  [[ -f $MARCA_PROTETOR ]] || return 0
+  omarchy-toggle "$TOGGLE" off && rm -f "$MARCA_PROTETOR" && echo "protetor de tela religado"
+}
+
+ativar() {
+  ativo=true
+  desligar_protetor
+  if lg_ligado; then
+    if desligar_lg "VNC conectado"; then
+      desligou_em=$SECONDS
+      religar_no_fim=true
+      avisar "LG desligado: VNC conectado" \
+        "O VNC só mostra o notebook. O LG volta quando o VNC desconectar. Para usar agora, ligue pelo painel Display."
+    fi
+  fi
+}
+
+desativar() {  # $1: o que disparou
+  ativo=false
+  devolver_protetor
+  if { $religar_no_fim || [[ -f $MARCA_RELIGAR ]]; } && ! sessao_rustdesk; then
+    rm -f "$MARCA_RELIGAR"
+    if ! lg_ligado; then hyprctl reload >/dev/null && echo "$1: LG religado (hyprctl reload)"; fi
+  fi
+  desligou_em=''
+  religar_no_fim=false
+}
+
+ajustar() {  # $1: clientes conectados agora, $2: o que disparou
+  if (( $1 > 0 )) && ! $ativo; then
+    ativar
+  elif (( $1 == 0 )) && $ativo; then
+    desativar "$2"
+  fi
+}
+
+insistir() {
+  $ativo && [[ -n $desligou_em ]] || return 0
+  if (( SECONDS - desligou_em >= CARENCIA_S )); then
+    desligou_em=''  # passou a carência: um LG ligado agora foi à mão e fica
+  elif lg_ligado; then
+    desligar_lg "LG religou sozinho no começo do VNC"
+  fi
+}
+
+tratar_evento() {  # $1: uma linha JSON do wayvncctl
+  local metodo n
+  metodo=$(jq -r '.method // empty' <<<"$1" 2>/dev/null)
+  case $metodo in
+    client-connected | client-disconnected)
+      n=$(jq -r '.params.connection_count // 0' <<<"$1")
+      ajustar "$n" "VNC desconectado"
+      ;;
+    wayvnc-startup) ajustar "$(clientes_vnc)" "wayvnc reiniciado sem clientes" ;;
+    wayvnc-shutdown) ajustar 0 "wayvnc parado" ;;
+  esac
+}
+
+encerrar() {
+  if $ativo; then desativar "serviço parado"; fi
+  exit 0
+}
+trap encerrar TERM INT
+
+# Uma marca que sobrou (serviço morto, notebook desligado com o VNC aberto) e ninguém no VNC:
+# devolve o protetor já no início, mesmo que o wayvnc demore a subir.
+if (( $(clientes_vnc) == 0 )); then devolver_protetor; fi
+
+exec {eventos}< <(wayvncctl -j -w -r event-receive 2>/dev/null)
+
+while true; do
+  if IFS= read -r -t "$INTERVALO_S" -u "$eventos" linha; then
+    tratar_evento "$linha"
+  elif (( $? <= 128 )); then
+    echo "wayvncctl event-receive terminou" >&2
+    if $ativo; then desativar "wayvncctl terminou"; fi
+    exit 1
+  fi
+  insistir
+done

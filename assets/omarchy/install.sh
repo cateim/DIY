@@ -98,7 +98,7 @@ print_next_steps() {
   echo "Próximos passos (o install.sh não reinicia nada):"
   echo "  hyprctl reload && hyprctl configerrors"
   echo "  omarchy restart shell        # plugins keepLoaded só trocam de código assim"
-  echo "  systemctl --user daemon-reload && systemctl --user enable --now drive-sync.timer wayvnc.service"
+  echo "  systemctl --user daemon-reload && systemctl --user enable --now drive-sync.timer wayvnc.service vnc-sessao.service rustdesk-tela-unica.service"
   if ((WITH_SYSTEM)); then
     echo "  sudo systemctl daemon-reload && sudo systemctl enable home-emergencia.service"
     echo "  sudo udevadm control --reload-rules && sudo udevadm trigger"
