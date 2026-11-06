@@ -26,6 +26,18 @@ set -uo pipefail
 
 readonly LG_DESC='LG Electronics LG ULTRAWIDE 0x0003B53D'
 readonly CM_CMDLINE='/usr/lib/rustdesk/rustdesk --cm'
+# Processos do serviço do RustDesk (o do sistema, rustdesk.service): o --server e o --cm que ele
+# abre ficam nesse cgroup, uns 5 processos. Procurar o --cm só ali custa menos de 1 ms; o
+# "pgrep -xf" varria os ~550 processos do notebook em uns 100 ms, a cada 2 s, e era quase todo o
+# gasto do serviço, uns 5% de um núcleo parado (medido em 06/11/2026). Sem esse arquivo (serviço
+# parado ou cgroup em outro lugar), volta ao pgrep.
+readonly PROCS_RUSTDESK=/sys/fs/cgroup/system.slice/rustdesk.service/cgroup.procs
+# O padrão do pgrep não pode conter o CM_CMDLINE: o --service do RustDesk procura esse texto na
+# linha de comando de qualquer processo, duas vezes por segundo (get_cm, linux.rs:1312, 1.5.1),
+# e quando o processo some ele reinicia o --server, "sessão fechada" (linux.rs:1076). Com o
+# CM_CMDLINE inteiro, o pgrep deste serviço parecia uma sessão: o --server reiniciou de 20 a 46
+# vezes por hora, de 04/11/2026 23:26 a 06/11/2026 12:34. O [k] casa com o mesmo k.
+readonly CM_PGREP='/usr/lib/rustdesk/rustdes[k] --cm'
 readonly LOG_RUSTDESK="$HOME/.local/share/logs/RustDesk/server/rustdesk_rCURRENT.log"
 readonly INTERVALO_S=2
 # Pedido de conexão que não virou sessão (senha errada, desistência): religa depois disso.
@@ -44,7 +56,17 @@ cedeu=false       # o LG foi ligado à mão neste ciclo
 origem=''         # IP da conexão, lido do log
 
 sessao_aberta() {
-  pgrep -xf "$CM_CMDLINE" >/dev/null
+  local pid args
+  if [[ ! -r $PROCS_RUSTDESK ]]; then
+    pgrep -xf "$CM_PGREP" >/dev/null
+    return
+  fi
+  while read -r pid; do
+    # Um processo que acabou de sair some do /proc antes do cgroup.procs: ignora.
+    mapfile -d '' -t args 2>/dev/null <"/proc/$pid/cmdline" || continue
+    [[ "${args[*]}" == "$CM_CMDLINE" ]] && return 0
+  done <"$PROCS_RUSTDESK"
+  return 1
 }
 
 lg_ligado() {
