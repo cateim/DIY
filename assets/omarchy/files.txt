@@ -17,7 +17,6 @@
 ~/.config/omarchy/shell.toml
 ~/.config/omarchy/defaults/agent
 ~/.config/omarchy/themed/chromium.theme.tpl
-~/.config/omarchy/plugins/cateim.keyboard-layout/
 ~/.config/omarchy/plugins/cateim.window-switcher/
 
 # ---- Vigia das atualizações do Omarchy (avisa quando muda o que as personalizações usam) ----

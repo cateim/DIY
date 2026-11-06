@@ -32,7 +32,7 @@
           "id": "omarchy.tray"
         },
         {
-          "id": "cateim.keyboard-layout"
+          "id": "omarchy.keyboard-layout"
         },
         {
           "id": "omarchy.tailscale"
@@ -63,7 +63,30 @@
       ],
       "centerEnd": [
         {
-          "id": "omarchy.elsewhen"
+          "id": "omarchy.elsewhen",
+          "cities": [
+            {
+              "name": "Sao Paulo",
+              "zone": "America/Sao_Paulo"
+            },
+            {
+              "name": "London",
+              "zone": "Europe/London"
+            },
+            {
+              "name": "Dubai",
+              "zone": "Asia/Dubai"
+            },
+            {
+              "name": "Tokyo",
+              "zone": "Asia/Tokyo"
+            },
+            {
+              "name": "Los Angeles",
+              "zone": "America/Los_Angeles"
+            }
+          ],
+          "hour24": true
         },
         {
           "id": "omarchy.weather"

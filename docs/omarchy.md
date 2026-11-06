@@ -85,11 +85,10 @@ Placeholders do espelho:
 
 | Arquivo | O que muda |
 | :--- | :--- |
-| `shell.json` | Barra com a janela ativa à esquerda e o layout de teclado (`cateim.keyboard-layout`) e o Tailscale à direita. Bloqueio da tela em 30 min (era 5) e descanso de tela em 10 min (era 2,5). Liga o plugin `cateim.window-switcher`. Desde a 4.5 o centro da barra tem `centerBegin` (indicadores), o relógio e `centerEnd` (Elsewhen, clima e atualizações). |
+| `shell.json` | Barra com a janela ativa à esquerda e o layout de teclado (`omarchy.keyboard-layout`, o original desde a 4.5) e o Tailscale à direita. Bloqueio da tela em 30 min (era 5) e descanso de tela em 10 min (era 2,5). Liga o plugin `cateim.window-switcher`. Desde a 4.5 o centro da barra tem `centerBegin` (indicadores), o relógio e `centerEnd` (Elsewhen, clima e atualizações). Barra transparente (`transparent: true`, escolhido em 05/11/2026). O Elsewhen mostra São Paulo, Londres, Dubai, Tóquio e Los Angeles em 24 h (o padrão é Los Angeles, Paris e Tóquio). |
 | `shell.toml` | Fonte base 12. |
 | `defaults/agent` | Agente padrão do Omarchy: `claude`. |
 | `themed/chromium.theme.tpl` | Modelo de tema do Chromium trocado por `0,0,0`. |
-| `plugins/cateim.keyboard-layout/` | Clone do `omarchy.keyboard-layout` que troca o layout em todos os teclados de uma vez (`hyprctl switchxkblayout all`). O notebook, o uinput do RustDesk e o teclado virtual do wayvnc tinham cada um o seu. O widget original da 4.5 passou a trocar todos os teclados com a mesma lista de layouts e ganhou método de entrada (fcitx5); o `vigia-omarchy` acompanha a diferença. |
 | `plugins/cateim.window-switcher/` | Alt+Tab com miniaturas ao vivo, na ordem de uso, no monitor focado. Mudança no QML só vale depois de `omarchy restart shell`. |
 
 ### 3.3 Terminal e prompt
@@ -152,8 +151,8 @@ Placeholders do espelho:
 
 | Arquivo | O que muda |
 | :--- | :--- |
-| `~/.local/bin/vigia-omarchy` | Guarda uma cópia dos arquivos do Omarchy de que as personalizações dependem e a versão dos pacotes que importam (`~/.local/state/vigia-omarchy/base/`). A cada execução compara, grava o que mudou com o diff em `~/.local/state/vigia-omarchy/relatorio.txt` e manda uma notificação; também acusa erro na config do Hyprland, atalho repetido e plugin `cateim.*` desligado. Depois de revisar o relatório: `vigia-omarchy aceitar`. A base não vai para o DIY: numa máquina nova a primeira execução grava a base sem avisar. Nasceu na 4.5, que deixou o clone do keyboard-layout para trás e mudou o religar do painel Display sem aviso nenhum. |
-| `~/.config/vigia-omarchy/vigiados.conf` | O que vigiar, uma linha por item (`arquivo` ou `pacote`, o alvo e a personalização afetada): clone do keyboard-layout, painel Display, peças do shell que o window-switcher usa, tema do Chromium, modelos de onde saíram os arquivos do `~/.config`, o `omarchy-tools.toml` do mise, a unit do RustDesk e os pacotes rustdesk, hyprland, xdg-desktop-portal-hyprland, quickshell, wayvnc e rclone. |
+| `~/.local/bin/vigia-omarchy` | Guarda uma cópia dos arquivos do Omarchy de que as personalizações dependem e a versão dos pacotes que importam (`~/.local/state/vigia-omarchy/base/`). A cada execução compara, grava o que mudou com o diff em `~/.local/state/vigia-omarchy/relatorio.txt` e manda uma notificação; também acusa erro na config do Hyprland, atalho repetido, plugin `cateim.*` desligado e o shell do Omarchy ainda rodando o código de antes da atualização. Depois de revisar o relatório: `vigia-omarchy aceitar`. A base não vai para o DIY: numa máquina nova a primeira execução grava a base sem avisar. Nasceu na 4.5, que deixou o clone do keyboard-layout para trás e mudou o religar do painel Display sem aviso nenhum. |
+| `~/.config/vigia-omarchy/vigiados.conf` | O que vigiar, uma linha por item (`arquivo` ou `pacote`, o alvo e a personalização afetada): painel Display, peças do shell que o window-switcher usa, tema do Chromium, modelos de onde saíram os arquivos do `~/.config`, o `omarchy-tools.toml` do mise, a unit do RustDesk e os pacotes rustdesk, hyprland, xdg-desktop-portal-hyprland, quickshell, wayvnc e rclone. |
 | `~/.config/omarchy/hooks/post-update.d/vigia-omarchy` e `post-boot.d/vigia-omarchy` | Rodam o vigia dentro do `omarchy update`, depois das migrações, e a cada início da sessão, que pega o que mudou fora do update ou depois do hook (AUR e mise). |
 
 ## Parte 4: Pacotes
@@ -262,6 +261,7 @@ Vale para toda personalização nova, mudada ou removida no notebook, na mesma s
 | Plugin do shell não muda depois do install | Plugin `keepLoaded` e o cache de componente do QML | `omarchy restart shell`. |
 | Alt+Tab não confirma ao soltar o Alt | Bind de soltar sem `submap_universal` ou `transparent` | Veja o comentário do bloco no `bindings.lua` (Hyprland 0.56.2, `KeybindManager.cpp:652` e `:867`). |
 | Teclado preso no switcher | Submap `cateim-switcher` ativo | `hyprctl dispatch 'hl.dsp.submap("reset")'`. |
+| Depois de um `omarchy update`, `SUPER + SPACE` ou `SUPER + ALT + SPACE` não faz nada (`omarchy-shell omarchy.dock apps` responde `Target not found`) | O shell do Omarchy não foi reiniciado e roda o código antigo, que não tem o que os atalhos novos chamam | `omarchy restart shell`. O `vigia-omarchy` avisa ("SHELL ANTIGO"). Desde a 4.5, `SUPER + SPACE` abre o menu do Omarchy e `SUPER + ALT + SPACE` os apps. |
 | LG não volta pelo painel Display | Sessão do RustDesk aberta (o CortenDesk reconecta sozinho depois de um `Timeout`) | A notificação do `rustdesk-tela-unica` diz o IP. Feche a sessão na janela do RustDesk ou ligue o LG de novo depois de 20 s. |
 | LG volta à direita, a 60 Hz | Regra `HDMI-A-4` fora do `monitors.lua`, ou o painel Display mudou | `hyprctl reload` e veja o relatório do `vigia-omarchy`. |
 | Git pede senha do GitHub | Caminho velho do `gh` nas linhas `credential` | `gh auth setup-git`. |
