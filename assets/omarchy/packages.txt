@@ -48,6 +48,15 @@ gperf
 swig
 git-lfs
 
+# ---- LSPs dos plugins do Claude Code (07/11/2026; o resto na Parte 4 do docs/omarchy.md) ----
+typescript-language-server   # typescript-lsp; puxa o typescript
+pyright                      # pyright-lsp
+lua-language-server          # lua-lsp
+ruby-lsp                     # ruby-lsp; as gems do bundle dele vão para ~/.local/share/gem (~/.bundle/config)
+ruby-bundler                 # o ruby-lsp cai sem ele, mas o pacote não depende dele
+dotnet-sdk                   # antes do csharp-ls do AUR: o dotnet-sdk-10.0 que ele puxaria conflita com o dotnet-runtime do Omarchy (pinta)
+jre25-openjdk-headless       # Java 25 só do jdtls do AUR (wrapper /usr/local/bin/jdtls); o java padrão segue no 21
+
 # ---- Engenharia reversa (motores do REA, docs/rea.md Parte 6) ----
 # ghidra e jdk21-openjdk em 03/11/2026; o resto em 06/11/2026, nas versões que o REA 6.8.0 pede.
 ghidra

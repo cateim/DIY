@@ -67,6 +67,10 @@
 ~/.config/systemd/user/drive-sync-vigia.service
 ~/.config/systemd/user/drive-sync-vigia.timer
 
+# ---- LSPs dos plugins do Claude Code (o /usr/local só vai com install.sh --system) ----
+~/.bundle/config
+/usr/local/bin/jdtls
+
 # ---- Sistema (/etc): install.sh --system, com sudo ----
 /etc/limine-entry-tool.d/alienware-display.conf
 /etc/systemd/system/cloudflared.service
