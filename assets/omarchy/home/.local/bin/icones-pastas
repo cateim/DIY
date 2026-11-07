@@ -10,6 +10,8 @@
 # Uso: icones-pastas, depois nautilus -q (o Nautilus só relê o ícone ao reiniciar,
 # mesmo com a imagem trocada no mesmo caminho).
 # Ícone novo ou trocado: salve <pasta>.<extensão> na pasta dos ícones e rode de novo.
+# A cópia da pasta fica no Google Drive, em ~/Drive/Omarchy/icones-pastas/: ícone
+# novo ou trocado vai para lá também.
 # ==============================================================================
 set -euo pipefail
 

@@ -1,0 +1,11 @@
+[Unit]
+Description=Confere a cada hora se o drive-sync continua ligado
+
+[Timer]
+# Conta do inicio do systemd do usuario, nao do boot: no login os dois timers sobem juntos, e o
+# vigia nao pode olhar o drive-sync.timer antes de ele subir.
+OnStartupSec=10min
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy=timers.target
