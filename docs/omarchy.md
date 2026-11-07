@@ -214,7 +214,7 @@ Tudo o que não é arquivo do espelho, na ordem em que faz sentido numa reinstal
    ```
 
 7. **Desbloqueio do LUKS por SSH no boot** (só pelo cabo): preencha `BOOT_*` e `UNLOCK_ROOT_KEYS` no `private.env` e rode [`assets/omarchy/scripts/ssh-no-boot.sh`](../assets/omarchy/scripts/ssh-no-boot.sh). Ele tira um snapshot antes, instala os hooks, gera o initramfs e confere tudo. Se acusar falha, não reinicie.
-8. **Portainer Agent**: siga o [`portainer-agent.md`](./portainer-agent.md).
+8. **Portainer Agent**: `sudo systemctl enable docker.service` primeiro. O Omarchy liga só o `docker.socket`, e sem isso o Docker e o agent só sobem no primeiro uso do Docker, não no boot. Depois siga o [`portainer-agent.md`](./portainer-agent.md).
 9. **Voxtype**: aceite o convite "Install Dictation with Voxtype" do Omarchy.
 10. **Luz do G903** (perfil gravado na memória do mouse):
 

@@ -39,6 +39,8 @@ Confira que subiu: `ss -ltn | grep 9001` mostra `0.0.0.0:9001`.
 
 > ℹ️ O container fica na rede `bridge` padrão, sem rede com nome, e não cria nenhuma `<stack>_default`. O `--restart=always` é o do comando oficial.
 
+> ⚠️ **No Omarchy, ligue o Docker no boot:** `sudo systemctl enable docker.service`. O Omarchy liga só o `docker.socket`, e o Docker só sobe no primeiro uso. Até lá, o `--restart=always` não tem quem o cumpra, e a máquina fica offline no Portainer central depois de cada boot. O drop-in `no-block-boot.conf` do pacote `omarchy-settings` (`DefaultDependencies=no`) deixa o boot seguir sem esperar o Docker. Confira com `systemctl is-enabled docker.service`, que deve responder `enabled`.
+
 ---
 
 ## Parte 2: Firewall (ufw + ufw-docker do Omarchy)
