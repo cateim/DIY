@@ -3,6 +3,9 @@
 # Don't print "[ble: exit]" when the shell exits
 bleopt exec_exit_mark=
 
+# Don't print "[ble: exit N]" after every command that returns non-zero
+bleopt exec_errexit_mark=
+
 # History suggestion as plain gray text, no background (like zsh-autosuggestions).
 # Fixed 256-color gray: the theme's "bright black" is too dark in some themes (e.g. Hackerman).
 ble-face auto_complete='fg=244'
