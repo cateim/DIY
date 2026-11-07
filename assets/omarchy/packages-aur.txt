@@ -9,8 +9,11 @@ anydesk-bin                   # instalado, mas não recebe conexão no Wayland
 autosubsync-bin
 blesh-git                     # sugestões e cores no bash (carregado no ~/.bashrc)
 chrome-remote-desktop
+csharp-ls                     # LSP do plugin csharp-lsp do Claude Code; compila com o dotnet-sdk da packages.txt
 hunspell-pt-br                # corretor em português
+jdtls                         # LSP do plugin jdtls-lsp; a 1.63 pede Java 25 (wrapper /usr/local/bin/jdtls)
 lziprecover                   # extrator do Unblob (REA); pede gpg --recv-keys 1E5AEE0B18C0DEB45D64AA0325B62C9821501AA0
+nodejs-intelephense           # LSP do plugin php-lsp do Claude Code
 openscad-snapshot-appimage    # modelagem 3D (Bambu A1 e A1 mini)
 sasquatch                     # SquashFS fora do padrão, extrator do Unblob (REA)
 sparrow-wallet

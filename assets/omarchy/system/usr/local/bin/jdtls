@@ -1,0 +1,6 @@
+#!/bin/sh
+# jdtls 1.63+ exige Java 25 (os bundles OSGi pedem JavaSE-25), mas o PKGBUILD do
+# AUR ainda declara java-runtime>=21 e o java padrão do sistema fica no 21 por
+# causa do ghidra e do apktool (REA). Este wrapper vem antes do /usr/bin/jdtls no
+# PATH e prende só o jdtls no Java 25 (pacote jre25-openjdk-headless).
+exec /usr/bin/jdtls --java-executable /usr/lib/jvm/java-25-openjdk/bin/java "$@"
