@@ -380,6 +380,37 @@ curl -s "https://adguard.exemplo.com/dns-query"
 3. Verificar no **Query Log** do AdGuard que as queries aparecem e os domínios bloqueados estão marcados
 4. Testar que o painel admin (`https://adguard.exemplo.com`) exige login, mas `https://adguard.exemplo.com/dns-query` responde sem autenticação
 
+### ⚠️ Troubleshooting: Nada é bloqueado (proteção desligada)
+
+O anúncio passa em todo aparelho e o **Query Log** não tem nenhuma linha bloqueada, mesmo com as listas atualizadas e ativas. Com a proteção desligada, nada vale: listas, regras personalizadas, controle parental e navegação segura.
+
+```bash
+docker exec adguardhome grep -n "protection_enabled" /opt/adguardhome/conf/AdGuardHome.yaml   # tem de ser true
+docker exec adguardhome nslookup -type=a doubleclick.net 127.0.0.1                             # bloqueado: 0.0.0.0
+```
+
+**Fix:** religar a proteção no botão do topo do **Painel**. Em 06/11/2026 ela estava desligada sem prazo (`protection_disabled_until: null`) desde antes de 23/10, e o log não tinha nenhum bloqueio no período.
+
+### 🔎 Ver as consultas de um aparelho só
+
+Com **Anonimizar IP do cliente** ligado (`dns.anonymize_client_ip: true`), o Query Log grava a rede inteira como `192.168.0.0`, e filtrar pelo IP do aparelho não acha nada. Para ver um aparelho sem mudar o AdGuard, capture no namespace de rede do container, onde a consulta chega com o IP real (o DNAT do Docker preserva a origem):
+
+```bash
+docker run --rm --name dns-captura --net=container:adguardhome --cap-add=NET_RAW --cap-add=NET_ADMIN \
+  alpine:3.20 sh -c "apk add --no-cache tcpdump >/dev/null && timeout 1800 tcpdump -i any -n -l -tttt 'host <IP_DO_APARELHO> and port 53'"
+```
+
+- O `timeout` encerra a captura em 30 minutos e o `--rm` apaga o container.
+- Os horários saem em UTC, porque o Alpine não tem fuso.
+- Para ler depois, monte uma pasta (`-v /tmp/captura:/cap`) e acrescente `-U -w /cap/dns.pcap --print`. No notebook, o `inspect_packet_capture` do [REA](./rea.md) lê o pcap.
+- O que o aparelho mandar para o DNS secundário do Deco (`1.1.1.1`, Parte 6) não passa pelo AdGuard e não aparece aqui.
+
+### 📺 Disney+ com anúncios na TV
+
+Medido numa TV LG com webOS em 06/11/2026, no plano com anúncios. No play, o app pede o anúncio a `us-east-1.ads.digital.disneyadvertising.com` (CNAME `diproton-ads-prod-us-east-1.hulu.com.akadns.net`) e, quando ele aparece, avisa em `beacons.digital.disneyadvertising.com`. A **AdGuard DNS filter** já bloqueia `||disneyadvertising.com^`: com a proteção ligada, a TV recebe `0.0.0.0`, o vídeo toca sem anúncio e o aviso de exibição some. O app tenta de novo a cada 5 minutos e meio, sem efeito no vídeo.
+
+Rastreadores que vêm junto com o anúncio e as listas padrão também bloqueiam: `video.adsafeprotected.com`, `events.tremorhub.com`, `googleads.g.doubleclick.net` e `pagead2.googlesyndication.com`. Playback e vídeo usam outros domínios (`*.bamgrid.com`, `*.media.dssott.com`), que continuam liberados.
+
 ### ⚠️ Troubleshooting: Filtros não funcionam no Desktop
 
 Se celulares na mesma rede Wi-Fi estão sendo filtrados normalmente, mas o desktop ignora os bloqueios, a causa mais comum é **DNS fixo configurado manualmente no adaptador de rede**, sobrescrevendo o DHCP do roteador.
