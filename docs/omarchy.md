@@ -179,6 +179,7 @@ As três listas ficam em [`assets/omarchy/`](../assets/omarchy/) e se instalam p
 uv tool install graphifyy
 uv tool install semgrep
 uv tool install clang-format
+uv tool install --python 3.12 oci-cli    # OCI CLI num Python 3.12 do uv (o do sistema é 3.14); credencial no passo 14 da Parte 5
 uv tool install unblob==26.6.4 --with-executables-from jefferson,ubi-reader   # extração de firmware do REA (docs/rea.md, Parte 6)
 npm install --global rea-agents          # REA, no Node do mise (docs/rea.md)
 rea setup --client claude_code --yes     # MCP e skill do REA no Claude Code; acha o Ghidra em /opt/ghidra
@@ -250,6 +251,18 @@ Tudo o que não é arquivo do espelho, na ordem em que faz sentido numa reinstal
     ```
 
     A pasta dos ícones não está no DIY porque tem logos e nomes de projetos de cliente, e por isso a cópia fica no Drive, que é privado. Ícone novo ou trocado vai para as duas pastas. O metadata do gvfs (`~/.local/share/gvfs-metadata/`) também fica de fora: é binário e guarda o estado de todos os arquivos, não só o dos ícones.
+
+14. **OCI CLI** (depois do `uv tool install` da Parte 4): gere a chave da API no próprio notebook:
+
+    ```bash
+    ( umask 077; mkdir -p ~/.oci
+      openssl genrsa -out ~/.oci/oci_api_key.pem 2048
+      openssl rsa -pubout -in ~/.oci/oci_api_key.pem -out ~/.oci/oci_api_key_public.pem
+      echo OCI_API_KEY >> ~/.oci/oci_api_key.pem )   # rótulo que o CLI pede; sem ele, avisa a cada comando
+    wl-copy < ~/.oci/oci_api_key_public.pem
+    ```
+
+    No console do OCI, no usuário que o CLI vai usar: **API keys** → **Add API key** → **Paste a public key**, cole e adicione. Grave em `~/.oci/config` o trecho que o console mostra (**Configuration file preview**), com `key_file=~/.oci/oci_api_key.pem`, rode `chmod 600 ~/.oci/config` e teste com `oci iam region-subscription list`. Prefira um usuário com o mínimo de permissão que o uso pede. O `~/.oci` nunca entra no DIY: a chave privada dá acesso à conta.
 
 ---
 
