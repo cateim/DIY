@@ -48,9 +48,21 @@ gperf
 swig
 git-lfs
 
-# ---- Engenharia reversa (motor nativo do REA, docs/rea.md; instalados em 03/11/2026) ----
+# ---- Engenharia reversa (motores do REA, docs/rea.md Parte 6) ----
+# ghidra e jdk21-openjdk em 03/11/2026; o resto em 06/11/2026, nas versões que o REA 6.8.0 pede.
 ghidra
 jdk21-openjdk
+wireshark-cli      # tshark e capinfos: pcap e campos de protocolo
+sigrok-cli         # 0.7.2: gravação de analisador lógico
+binwalk            # 3.1.0: regiões de firmware
+wabt               # 1.0.42: WebAssembly
+python-pwntools    # 4.15.0: layout de ELF e core dump
+mitmproxy          # 12.2.3: captura nativa do mitmdump
+rizin              # sessão de debug do rizin
+erofs-utils        # extratores do Unblob (extração de firmware do REA): fsck.erofs,
+lzop               # lzop,
+partclone          # partclone.restore
+unarchiver         # e unar
 
 # ---- Arquivos, disco e sincronização ----
 7zip
