@@ -3,12 +3,15 @@
 # Instalar:  omarchy pkg aur add $(grep -vE '^\s*(#|$)' assets/omarchy/packages-aur.txt | cut -d' ' -f1)
 
 ai-memory-bin                 # cliente do ai-memory (docs/ai-memory.md)
+android-apktool-bin           # apktool do REA: recursos de APK (docs/rea.md, Parte 6)
 antigravity-ide               # IDE principal
 anydesk-bin                   # instalado, mas não recebe conexão no Wayland
 autosubsync-bin
 blesh-git                     # sugestões e cores no bash (carregado no ~/.bashrc)
 chrome-remote-desktop
 hunspell-pt-br                # corretor em português
+lziprecover                   # extrator do Unblob (REA); pede gpg --recv-keys 1E5AEE0B18C0DEB45D64AA0325B62C9821501AA0
 openscad-snapshot-appimage    # modelagem 3D (Bambu A1 e A1 mini)
+sasquatch                     # SquashFS fora do padrão, extrator do Unblob (REA)
 sparrow-wallet
 ventoy-bin

@@ -179,9 +179,12 @@ As três listas ficam em [`assets/omarchy/`](../assets/omarchy/) e se instalam p
 uv tool install graphifyy
 uv tool install semgrep
 uv tool install clang-format
+uv tool install unblob==26.6.4 --with-executables-from jefferson,ubi-reader   # extração de firmware do REA (docs/rea.md, Parte 6)
 npm install --global rea-agents          # REA, no Node do mise (docs/rea.md)
 rea setup --client claude_code --yes     # MCP e skill do REA no Claude Code; acha o Ghidra em /opt/ghidra
 ```
+
+Os motores do REA que não vêm do pacman (Kuna, Wakaru e o JAR do JADX, em `~/.local/share/rea`, e o Unblob acima) e as variáveis `REA_*` do registro estão na [Parte 6 do guia do REA](./rea.md#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir).
 
 O ESP-IDF 5.5.5 do Jade fica em `~/esp`, com um venv próprio, e não está no DIY.
 

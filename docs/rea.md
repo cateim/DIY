@@ -51,12 +51,12 @@ Trecho real de uma Evidence (`rea inspect-go-binary /usr/bin/tailscale`):
 | Frente                                      | O que o REA resolve                                                                                                                                                                            | Ferramentas principais                                                                                                      | Pronto hoje?                                                                                           |
 | :------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
 | **Firmware ESP32** (Jade DIY, Tasmota)      | Conferir um build DIY contra o oficial (chip, versão, IDF, assinatura Secure Boot v2) antes de publicar; inventariar um backup de flash inteiro                                                | `inspect-artifact`, `extract-artifact`; o `.elf` do build num motor nativo                                                  | ⏳ Próxima release ([Parte 5.6](#56-firmware-esp32-na-próxima-release)); o `.elf` já abre no Ghidra    |
-| **Integrações do Home Assistant**           | Descobrir a API que o app do fabricante usa: puxar o APK do celular, ler manifest e classes, ver as chamadas numa captura                                                                      | `pull-adb-package`, `inspect-android-package`, `search-android-classes`, `inspect-web-network-capture`                      | ✅ Parcial: `adb` e HAR já funcionam; ler o APK pede o JADX                                            |
+| **Integrações do Home Assistant**           | Descobrir a API que o app do fabricante usa: puxar o APK do celular, ler manifest e classes, ver as chamadas numa captura                                                                      | `pull-adb-package`, `inspect-android-package`, `search-android-classes`, `inspect-web-network-capture`                      | ✅                                                                                                     |
 | **Scraping e bookmarklets**                 | Achar o endpoint interno, ver como o JavaScript do site monta token ou assinatura, descobrir qual listener o bookmarklet precisa disparar                                                      | `inspect-web-page`, `analyze-web-bundle`, `observe-web-session`, `inspect-web-event-listeners`, `trace-web-source-location` | ✅                                                                                                     |
 | **O que nossos apps entregam ao navegador** | Antes do deploy, ler o `dist/` do build: rotas, chamadas, `process.env` embutido e source map publicado sem querer                                                                             | `analyze-javascript-application`, `recover-javascript-sources`                                                              | ✅                                                                                                     |
 | **Supply chain do homelab**                 | Versão do Go e dos módulos dos binários que rodam (Caddy, Forgejo, cloudflared, Tailscale; de container, copie o binário antes com `docker cp`), para cruzar com CVE sem depender do changelog | `inspect-go-binary`, `inspect-rust-binary`, `inspect-elf-notes`                                                             | ✅                                                                                                     |
 | **"Vi uma feature e quero no meu produto"** | Entender como um app Electron ou nativo implementou algo e reconstruir no nosso código, com a evidência ao lado                                                                                | prompt `investigate_feature`, `analyze-javascript-application`, motor nativo                                                | ✅ JS/Electron e nativo (Ghidra)                                                                       |
-| **Hardware e rede de IoT**                  | Decodificar UART, I2C ou SPI gravado num analisador lógico; ler o pcap de um device                                                                                                            | `decode-signal-recording`, `inspect-pcap-capture`                                                                           | ❌ Pede `sigrok-cli` e `tshark` ([Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir)) |
+| **Hardware e rede de IoT**                  | Decodificar UART, I2C ou SPI gravado num analisador lógico; ler o pcap de um device                                                                                                            | `decode-signal-recording`, `inspect-pcap-capture`                                                                           | ✅ Desde 06/11/2026 ([Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir))             |
 
 **Onde não entra:** no nosso próprio código-fonte. Para arquitetura de repositório, use o [Graphify](./graphify.md) e a leitura normal; a própria skill do REA manda pular esse caso.
 
@@ -115,7 +115,7 @@ rea capabilities                           # o que cada motor faz e os efeitos d
 
 Dentro de uma sessão do agente, peça para ele chamar `binary_session`: o campo `tool_availability` diz o que o servidor em execução consegue usar, com o motivo e a correção de cada ausência.
 
-Estado em 04/11/2026: Node 26.13.0 e `procps-ng` ok, registro e skill ok, Ghidra 12.1.2 com JDK 21 ok (`rea doctor --provider ghidra --json` passa nas 8 checagens). Hopper, IDA, Kuna e JADX não estão configurados; o que destrava o resto está na [Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir).
+Estado em 06/11/2026: Node 26.13.0 e `procps-ng` ok, registro e skill ok, Ghidra 12.1.2 com JDK 21 ok (`rea doctor --provider ghidra --json` passa nas 8 checagens) e todos os motores livres da [Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir) configurados, Kuna incluído. O `binary_session` ainda lista como ausentes: JEB, IDA e Hopper (pagos) e as ferramentas que só existem no macOS. A extração de firmware passou a funcionar no mesmo dia, com o Unblob (Parte 6).
 
 ---
 
@@ -141,7 +141,7 @@ Quase todo pedido é uma combinação destes sete verbos. Saber qual você quer 
 | :--------------------------------------------------- | :--------------------------------------------------------------------------- | :-------------------------------------------- | :----------------------- |
 | App JavaScript ou Electron (pasta ou `.asar`)        | Módulos, imports, rotas, IPC entre main, preload e renderer, source maps     | `ps` do procps                                | ✅                       |
 | Site                                                 | Estrutura, scripts, rede, listeners, screenshots                             | Navegador da família Chrome                   | ✅ Chromium e Chrome     |
-| HAR, Fiddler SAZ ou captura do mitmproxy             | Requisições, respostas, payloads expostos e onde estão no código             | Nada para HAR; `mitmdump` para captura nativa | ✅ HAR                   |
+| HAR, Fiddler SAZ ou captura do mitmproxy             | Requisições, respostas, payloads expostos e onde estão no código             | Nada para HAR; `mitmdump` para captura nativa | ✅                       |
 | Binário Go                                           | Versão do Go, módulos com hash, flags de build                               | Nada                                          | ✅                       |
 | Binário Rust                                         | Crates e versões (se compilado com `cargo-auditable`)                        | Nada                                          | ✅                       |
 | ELF, PE e Mach-O                                     | Layout, notes, imports, exports, certificados, mitigações                    | Nada                                          | ✅                       |
@@ -151,11 +151,11 @@ Quase todo pedido é uma combinação destes sete verbos. Saber qual você quer 
 | Processo de terminal                                 | Saída, interações, arquivos tocados, comparação entre execuções              | PTY (vem no pacote)                           | ✅                       |
 | SQLite                                               | Schema e linhas de uma cópia do banco                                        | Node 24.15+ ou 26                             | ✅                       |
 | Binário nativo (pseudocódigo, assembly, referências) | Decompilação de funções, strings, chamadas                                   | Ghidra 12.1+, Hopper, IDA ou Kuna             | ✅ Ghidra 12.1.2         |
-| APK (manifest, classes e métodos decompilados)       | Declarações, inventário de classes, código Java ou Kotlin, referências       | JAR do `jadx-headless-mcp` 0.7.1 e JDK 17+    | ❌ Parte 6               |
-| Firmware genérico                                    | Regiões (binwalk) e extração (unblob)                                        | `binwalk` e `unblob`                          | ❌ Parte 6               |
+| APK (manifest, classes e métodos decompilados)       | Declarações, inventário de classes, código Java ou Kotlin, referências       | JAR do `jadx-headless-mcp` 0.7.1 e JDK 17+    | ✅                       |
+| Firmware genérico                                    | Regiões (binwalk) e extração (unblob)                                        | `binwalk` e `unblob`                          | ✅                       |
 | Imagem ESP32 (app, bootloader, OTA, dump de flash)   | Chip, descritor do app, segmentos, assinatura Secure Boot v2, partições, OTA | Nada                                          | ⏳ Só no `main` (abaixo) |
-| pcap/pcapng                                          | Endpoints, DNS, SNI do TLS, protocolos                                       | `tshark` e `capinfos`                         | ❌ Parte 6               |
-| Gravação de analisador lógico                        | Decodificação de UART, I2C, SPI e outros                                     | `sigrok-cli` 0.7.2                            | ❌ Parte 6               |
+| pcap/pcapng                                          | Endpoints, DNS, SNI do TLS, protocolos                                       | `tshark` e `capinfos`                         | ✅                       |
+| Gravação de analisador lógico                        | Decodificação de UART, I2C, SPI e outros                                     | `sigrok-cli` 0.7.2                            | ✅                       |
 
 A lista completa (GPU, modelos GGUF, Unity IL2CPP, Godot, EVM, PyInstaller, módulos do kernel...) está na [tabela do README do REA](https://github.com/morluto/rea#what-you-can-analyze).
 
@@ -373,17 +373,80 @@ rea extract-artifact /caminho/absoluto/jade.bin --json
 
 ## Parte 6: Motores opcionais (instalar quando a tarefa pedir)
 
-No notebook, só o Ghidra está instalado (04/11/2026). O REA não instala nem atualiza nenhum deles (exceto o Hopper, comercial, com `rea setup --install-hopper`); ele só usa o que você aponta:
+No notebook, todos os motores livres da tabela estão instalados desde 06/11/2026 (o Ghidra desde 04/11). O REA não instala nem atualiza nenhum deles (exceto o Hopper, comercial, com `rea setup --install-hopper`); ele só usa o que você aponta. As versões são as que o REA 6.8.0 verifica:
 
-| Destrava                                      | Instalar (Arch)                                                                 | Apontar para o REA                                         |
-| :-------------------------------------------- | :------------------------------------------------------------------------------ | :--------------------------------------------------------- |
-| Decompilar binário nativo e o `.elf` do ESP32 | `sudo pacman -S ghidra jdk21-openjdk` (Ghidra 12.1.2 em `/opt/ghidra`, 742 MiB) | Nada: acha `/opt/ghidra` sozinho                           |
-| Regiões de firmware                           | `sudo pacman -S binwalk`                                                        | `REA_BINWALK_COMMAND=/usr/bin/binwalk`                     |
-| Extração de firmware                          | `unblob` (fora dos repositórios do Arch)                                        | `REA_UNBLOB_COMMAND=/caminho/absoluto/unblob`              |
-| pcap e campos de protocolo                    | `sudo pacman -S wireshark-cli`                                                  | `REA_TSHARK_COMMAND` e `REA_CAPINFOS_COMMAND`, ou o PATH   |
-| Analisador lógico                             | `sudo pacman -S sigrok-cli` (0.7.2, a versão que o REA pede)                    | `REA_SIGROK_COMMAND=/usr/bin/sigrok-cli`                   |
-| Captura nativa do mitmproxy                   | `sudo pacman -S mitmproxy` (12.2.3, a versão que o REA pede)                    | `REA_MITMDUMP_COMMAND=/usr/bin/mitmdump`                   |
-| APK: manifest, classes e métodos              | JAR do `jadx-headless-mcp` 0.7.1 (não é o pacote `jadx` do Arch) e um JDK 17+   | `REA_JADX_MCP_JAR=/caminho/absoluto/jadx-headless-mcp.jar` |
+| Destrava                                      | Instalar (Arch)                                                                 | Apontar para o REA                                                  |
+| :-------------------------------------------- | :------------------------------------------------------------------------------ | :------------------------------------------------------------------ |
+| Decompilar binário nativo e o `.elf` do ESP32 | `sudo pacman -S ghidra jdk21-openjdk` (Ghidra 12.1.2 em `/opt/ghidra`, 742 MiB) | Nada: acha `/opt/ghidra` sozinho                                    |
+| Segundo decompilador nativo                   | Kuna 1.833, um executável só (bloco abaixo)                                     | `REA_KUNA_COMMAND=~/.local/share/rea/bin/kuna` (caminho absoluto)   |
+| Regiões de firmware                           | `sudo pacman -S binwalk` (3.1.0)                                                | `REA_BINWALK_COMMAND=/usr/bin/binwalk`                              |
+| Extração de firmware                          | Unblob 26.6.4 pelo uv e os extratores dele (bloco abaixo)                       | `REA_UNBLOB_COMMAND=~/.local/bin/unblob` (caminho absoluto)         |
+| pcap e campos de protocolo                    | `sudo pacman -S wireshark-cli`                                                  | `REA_TSHARK_COMMAND` e `REA_CAPINFOS_COMMAND`, ou o PATH            |
+| Analisador lógico                             | `sudo pacman -S sigrok-cli` (0.7.2)                                             | `REA_SIGROK_COMMAND=/usr/bin/sigrok-cli`                            |
+| Captura nativa do mitmproxy                   | `sudo pacman -S mitmproxy` (12.2.3)                                             | `REA_MITMDUMP_COMMAND=/usr/bin/mitmdump`                            |
+| WebAssembly                                   | `sudo pacman -S wabt` (1.0.42)                                                  | `REA_WABT_BIN_DIRECTORY=/usr/bin`                                   |
+| Layout de ELF e core dump                     | `sudo pacman -S python-pwntools` (4.15.0)                                       | `REA_PWNTOOLS_PYTHON=/usr/bin/python3`                              |
+| Sessão de debug do rizin                      | `sudo pacman -S rizin`                                                          | Nada: usa o `rizin` do PATH                                         |
+| APK: recursos                                 | `yay -S android-apktool-bin`                                                    | Nada: usa o `apktool` do PATH                                       |
+| APK: manifest, classes e métodos              | JAR do `jadx-headless-mcp` 0.7.1 (não é o pacote `jadx` do Arch) e um JDK 17+   | `REA_JADX_MCP_JAR=~/.local/share/rea/android/...` (absoluto)        |
+| JavaScript minificado de volta a módulos      | Wakaru 1.14.0, um executável só (bloco abaixo)                                  | `REA_WAKARU_COMMAND=~/.local/share/rea/bin/wakaru` (absoluto)       |
+
+Os pacotes estão no espelho ([`packages.txt`](../assets/omarchy/packages.txt) e [`packages-aur.txt`](../assets/omarchy/packages-aur.txt)). Kuna, Wakaru e o JAR do JADX vêm dos releases do GitHub, conferidos por SHA-256:
+
+```bash
+mkdir -p ~/.local/share/rea/bin ~/.local/share/rea/android && cd ~/.local/share/rea
+curl -fLO https://github.com/Noelo-Lab/kuna/releases/download/v1.833/kuna-v1.833-linux-x86_64.tar.gz
+curl -fLO https://github.com/pionxzh/wakaru/releases/download/v1.14.0/wakaru-linux-x64.tar.gz
+curl -fL -o android/jadx-headless-mcp-0.7.1-all.jar https://github.com/1013503897/jadx-headless-mcp/releases/download/v0.7.1/jadx-headless-mcp-0.7.1-all.jar
+printf '%s\n' \
+  'e9f047fb5a93925ede6d869df22c26c1c0ced90764ace7467ae90f880625d530  kuna-v1.833-linux-x86_64.tar.gz' \
+  'db0e620034723195ab426e94d00d55dbd8fd0106a928ada2563f1103196d09fa  wakaru-linux-x64.tar.gz' \
+  '6e5eacf500b64292bfb73c49797c1958f6ee44646e43e868039ae7feb573ff75  android/jadx-headless-mcp-0.7.1-all.jar' > SHA256SUMS
+sha256sum -c SHA256SUMS && tar -xzf kuna-v1.833-linux-x86_64.tar.gz -C bin --strip-components=1 kuna-v1.833-linux-x86_64/kuna && tar -xzf wakaru-linux-x64.tar.gz -C bin wakaru && rm ./*.tar.gz
+```
+
+**Extração de firmware é só pelo Unblob.** A remediação do `extract_firmware` diz "Binwalk ou Unblob", mas o código do REA 6.8.0 liga a extração só com o `REA_UNBLOB_COMMAND` (`firmwareExtractionEnabled` em `dist/server/createServer.js`); o binwalk serve apenas às regiões. Com o binwalk apontado e sem Unblob, o `binary_session` mostra `extract_firmware` como `provider_missing`, que foi o que aconteceu aqui em 06/11/2026. O Unblob não está nos repositórios nem no AUR; ele vai pelo uv, com o `jefferson` e o `ubireader` que ele mesmo instala expostos no PATH, e os outros extratores vêm do pacman e do AUR:
+
+```bash
+uv tool install unblob==26.6.4 --with-executables-from jefferson,ubi-reader
+sudo pacman -S --needed erofs-utils lzop partclone unarchiver
+gpg --recv-keys 1E5AEE0B18C0DEB45D64AA0325B62C9821501AA0   # chave do lziprecover (Antonio Diaz Diaz); sem ela o yay aborta os dois
+yay -S --needed sasquatch lziprecover
+unblob --show-external-dependencies   # só o sasquatch-v4be fica com ✗
+```
+
+As variáveis entram no `env` do registro de uma vez, com o `claude mcp add-json` (troque `<<HOME>>` pelo seu `$HOME`), e o Claude Code precisa reiniciar, porque o REA lê o ambiente só na partida:
+
+```bash
+claude mcp remove -s user rea
+claude mcp add-json -s user rea '{
+  "type": "stdio",
+  "command": "<<HOME>>/.local/share/mise/installs/node/26.13.0/bin/rea",
+  "args": ["mcp"],
+  "env": {
+    "GHIDRA_INSTALL_DIR": "/opt/ghidra",
+    "JAVA_HOME": "/usr/lib/jvm/java-21-openjdk",
+    "REA_TSHARK_COMMAND": "/usr/bin/tshark",
+    "REA_CAPINFOS_COMMAND": "/usr/bin/capinfos",
+    "REA_SIGROK_COMMAND": "/usr/bin/sigrok-cli",
+    "REA_BINWALK_COMMAND": "/usr/bin/binwalk",
+    "REA_UNBLOB_COMMAND": "<<HOME>>/.local/bin/unblob",
+    "REA_WABT_BIN_DIRECTORY": "/usr/bin",
+    "REA_PWNTOOLS_PYTHON": "/usr/bin/python3",
+    "REA_MITMDUMP_COMMAND": "/usr/bin/mitmdump",
+    "REA_WAKARU_COMMAND": "<<HOME>>/.local/share/rea/bin/wakaru",
+    "REA_KUNA_COMMAND": "<<HOME>>/.local/share/rea/bin/kuna",
+    "REA_JADX_MCP_JAR": "<<HOME>>/.local/share/rea/android/jadx-headless-mcp-0.7.1-all.jar"
+  }
+}'
+```
+
+**Conferido em 06/11/2026**, depois do reinício: o `binary_session` lista Ghidra e Kuna como `available`, e o `inspect_packet_capture` leu um pcap de DNS da TV pelo `tshark` apontado na variável. Com o Unblob, num segundo reinício, o `extract_firmware` passou a `available` e extraiu um arquivo de teste com um zip e um gzip colados: 2 chunks, cobertura `complete`, nenhum `extraction_gaps`. Continuam fora:
+
+- `sasquatch-v4be`, o extrator de SquashFS 4 big-endian do Unblob (raro, alguns roteadores): o `sasquatch` do AUR compila só o `sasquatch`.
+- JEB, IDA e Hopper, que são pagos.
+- Cutter (o plugin do REA para ele é experimental e vai à mão na pasta de plugins) e pwndbg (o REA exige o caminho de um venv do pwndbg).
+- O que só existe no macOS: `inspect_macho`, plist, Swift, asset catalog, assinatura de código e UI nativa.
 
 > ℹ️ **Por que `jdk21-openjdk` junto do Ghidra:** o pacote do Arch pede um JDK (`java-environment>=21`) e o pacman pergunta qual instalar. O REA aceita JDK 21 ou mais novo com o Ghidra 12.1 e foi verificado com o 21, então fica o 21 para não haver pergunta.
 
