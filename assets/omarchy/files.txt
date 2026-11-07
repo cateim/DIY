@@ -61,8 +61,11 @@
 
 # ---- Google Drive (drive-sync) ----
 ~/.local/bin/drive-sync.sh
+~/.local/bin/drive-sync-aviso
 ~/.config/systemd/user/drive-sync.service
 ~/.config/systemd/user/drive-sync.timer
+~/.config/systemd/user/drive-sync-vigia.service
+~/.config/systemd/user/drive-sync-vigia.timer
 
 # ---- Sistema (/etc): install.sh --system, com sudo ----
 /etc/limine-entry-tool.d/alienware-display.conf

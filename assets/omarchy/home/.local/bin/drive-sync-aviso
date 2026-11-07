@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# drive-sync-aviso: avisa na tela quando o drive-sync para de sincronizar, e
+# quando ele volta.
+#
+#   drive-sync-aviso           ExecStopPost= do drive-sync.service: roda depois
+#                              de toda rodada, com o resultado em $SERVICE_RESULT
+#   drive-sync-aviso --vigia   drive-sync-vigia.timer, a cada hora: confere o que
+#                              impede qualquer rodada de acontecer
+#
+# Rodada que falha: notificação crítica (fica na tela até ser fechada) com a
+# causa tirada do log desta rodada, repetida a cada hora enquanto continuar
+# falhando; a primeira rodada boa fecha o aviso e diz desde quando estava
+# parado. O vigia cobre o que o ExecStopPost não vê, porque aí nenhuma rodada
+# acontece: timer desligado, timer fora do boot e unit que nem carrega. Ele
+# não reclama do timer parado enquanto o drive-sync.sh faz um resync, que
+# pausa o timer de propósito. Rodada pulada pelo ExecCondition (home de
+# emergência) não avisa nada.
+#
+# Existe porque em 06/11/2026 o bisync falhou 26 vezes seguidas, das 12:38 às
+# 18:47, sem nada na tela: o systemd só anotava "Failed" no journal.
+# ==============================================================================
+set -euo pipefail
+
+DIR="$HOME/.local/state/drive-sync"
+LOG="$HOME/.local/state/drive-sync.log"
+ESTADO="$DIR/aviso"          # "inicio ultimo id" da rodada que falha
+ESTADO_VIGIA="$DIR/vigia"    # o mesmo, para o que impede as rodadas
+MARCA_PAUSA="$DIR/pausado"   # pid do drive-sync.sh que pausou o timer para o resync
+REPETIR_A_CADA=3600          # segundos entre um lembrete e outro
+
+# Títulos dos avisos: o fechamento na tela é por eles, então cada um é único.
+PARADO="Drive parou de sincronizar"
+PARADO_LEMBRETE="Drive continua parado"
+SEM_TIMER="Drive não vai sincronizar"
+SEM_TIMER_LEMBRETE="Drive continua sem sincronizar"
+
+# Início desta rodada no formato do log do rclone, para ler só as linhas dela.
+inicio_da_rodada() {
+  local quando
+  quando=$(systemctl --user show -p ExecMainStartTimestamp --value drive-sync.service 2>/dev/null || true)
+  [[ -n $quando ]] && date -d "$quando" '+%Y/%m/%d %H:%M:%S' 2>/dev/null || true
+}
+
+# Uma linha que diga o que quebrou na rodada e, quando se sabe, o que fazer.
+causa() {
+  local desde linhas erro
+  if [[ ${SERVICE_RESULT:-} == timeout ]]; then
+    echo "A rodada passou do limite de tempo (TimeoutStartSec) e foi interrompida."
+    return
+  fi
+  desde=$(inicio_da_rodada)
+  linhas=$(tail -n 5000 "$LOG" 2>/dev/null | awk -v d="$desde" 'd == "" || substr($0, 1, 19) >= d' || true)
+  # O rclone fecha esse erro com "retryable without --resync", e não é: sem as
+  # listagens, só o resync volta.
+  if grep -q 'cannot find prior Path1 or Path2 listings' <<<"$linhas"; then
+    echo "O bisync perdeu a base (as listagens). Para voltar: drive-sync.sh resync"
+    return
+  fi
+  # "ERROR : " nas falhas da rodada, "CRITICAL: " quando o rclone nem começa.
+  erro=$(grep -m1 -E ' (ERROR|CRITICAL) ?: ' <<<"$linhas" | sed -E 's/^[0-9/ :]+ (ERROR|CRITICAL) ?: //' | cut -c1-200 || true)
+  echo "${erro:-Sem detalhe no log (resultado: ${SERVICE_RESULT:-?}, código ${EXIT_STATUS:-?}).}"
+}
+
+# O drive-sync.sh pausa o timer durante o resync e deixa o próprio pid aqui.
+# Marca de um processo que já morreu não conta: o timer ficou desligado.
+resync_em_andamento() {
+  local pid=
+  [[ -r $MARCA_PAUSA ]] && read -r pid < "$MARCA_PAUSA" || true
+  [[ $pid =~ ^[0-9]+$ ]] && grep -qa 'drive-sync.sh' "/proc/$pid/cmdline" 2>/dev/null
+}
+
+# O que impede qualquer rodada de acontecer; vazio quando está tudo certo.
+problema_no_timer() {
+  local carregada ativo habilitado
+  carregada=$(systemctl --user show -p LoadState --value drive-sync.service 2>/dev/null || true)
+  if [[ $carregada != loaded ]]; then
+    echo "O drive-sync.service não carrega (LoadState=${carregada:-?}). Veja: systemctl --user status drive-sync.service"
+    return
+  fi
+  resync_em_andamento && return
+  ativo=$(systemctl --user is-active drive-sync.timer 2>/dev/null || true)
+  if [[ $ativo != active ]]; then
+    echo "O drive-sync.timer está ${ativo:-?}: nenhuma rodada acontece. Para religar: systemctl --user enable --now drive-sync.timer"
+    return
+  fi
+  habilitado=$(systemctl --user is-enabled drive-sync.timer 2>/dev/null || true)
+  if [[ $habilitado != enabled ]]; then
+    echo "O drive-sync.timer está ${habilitado:-?}: roda agora, mas não liga no próximo boot. Para corrigir: systemctl --user enable drive-sync.timer"
+  fi
+}
+
+# Mostra a notificação e imprime o id dela; vazio quando não há sessão gráfica.
+notificar() {  # urgência, ícone, título, corpo
+  notify-send -p -a drive-sync -u "$1" -i "$2" "$3" "$4" 2>/dev/null || true
+}
+
+# Tira da tela os avisos de um problema. O CloseNotification padrão só some
+# com o cartão que ainda não apareceu: o shell do Omarchy mantém na tela o que
+# já está visível ("Visible snapshots outlive their sender", Service.qml), e o
+# aviso do teste de 06/11 ficou lá depois de resolvido. Na tela, quem fecha é o
+# comando do próprio Omarchy, pelo título.
+fechar() {  # id, títulos do problema
+  local id=$1 titulo
+  shift
+  if (( id > 0 )); then
+    gdbus call --session --dest org.freedesktop.Notifications \
+      --object-path /org/freedesktop/Notifications \
+      --method org.freedesktop.Notifications.CloseNotification "$id" >/dev/null 2>&1 || true
+  fi
+  command -v omarchy >/dev/null 2>&1 || return 0
+  for titulo in "$@"; do
+    omarchy notification dismiss "$titulo" >/dev/null 2>&1 || true
+  done
+}
+
+ler_estado() {  # arquivo; imprime "inicio ultimo id", com zero no que faltar ou vier torto
+  local inicio=0 ultimo=0 id=0
+  [[ -r $1 ]] && read -r inicio ultimo id < "$1" || true
+  [[ $inicio =~ ^[0-9]+$ ]] || inicio=0
+  [[ $ultimo =~ ^[0-9]+$ ]] || ultimo=0
+  [[ $id =~ ^[0-9]+$ ]] || id=0
+  echo "$inicio $ultimo $id"
+}
+
+quando() {  # epoch
+  date -d "@$1" '+%H:%M de %d/%m'
+}
+
+# Problema em curso: avisa na primeira vez e depois a cada hora.
+avisar_problema() {  # estado, título da primeira vez, título do lembrete, texto, rodapé com %s para a hora
+  local estado=$1 agora inicio ultimo id titulo rodape novo
+  read -r inicio ultimo id <<<"$(ler_estado "$estado")"
+  agora=$(date +%s)
+  if (( inicio == 0 )); then
+    inicio=$agora
+    titulo=$2
+  elif (( agora - ultimo >= REPETIR_A_CADA )); then
+    titulo=$3
+  else
+    return 0
+  fi
+  # Também na primeira vez: um cartão velho do mesmo problema não fica empilhado.
+  fechar "$id" "$2" "$3"
+  printf -v rodape "$5" "$(quando "$inicio")"
+  novo=$(notificar critical dialog-warning "$titulo" "$4"$'\n'"$rodape")
+  # Sem sessão gráfica a notificação não sai: guarda só o início, e a próxima
+  # vez tenta de novo.
+  if [[ $novo =~ ^[0-9]+$ ]]; then
+    echo "$inicio $agora $novo" > "$estado"
+  else
+    echo "$inicio 0 0" > "$estado"
+  fi
+}
+
+# Problema resolvido: tira o aviso da tela e diz desde quando durava.
+avisar_resolvido() {  # estado, título, texto com %s para a hora, títulos do problema
+  local estado=$1 inicio ultimo id texto
+  read -r inicio ultimo id <<<"$(ler_estado "$estado")"
+  (( inicio > 0 )) || return 0
+  fechar "$id" "$4" "$5"
+  printf -v texto "$3" "$(quando "$inicio")"
+  notificar normal dialog-information "$2" "$texto" >/dev/null
+  rm -f -- "$estado"
+}
+
+depois_da_rodada() {
+  case ${SERVICE_RESULT:-} in
+    exec-condition) ;;
+    success) avisar_resolvido "$ESTADO" "Drive voltou a sincronizar" "Estava parado desde %s." \
+               "$PARADO" "$PARADO_LEMBRETE" ;;
+    *) avisar_problema "$ESTADO" "$PARADO" "$PARADO_LEMBRETE" \
+         "$(causa)" "Parado desde %s. Log: ~/.local/state/drive-sync.log" ;;
+  esac
+}
+
+vigiar() {
+  local problema
+  problema=$(problema_no_timer)
+  if [[ -n $problema ]]; then
+    avisar_problema "$ESTADO_VIGIA" "$SEM_TIMER" "$SEM_TIMER_LEMBRETE" "$problema" "Notado às %s."
+  else
+    avisar_resolvido "$ESTADO_VIGIA" "Timer do Drive de volta" "O problema tinha sido notado às %s." \
+      "$SEM_TIMER" "$SEM_TIMER_LEMBRETE"
+  fi
+}
+
+main() {
+  mkdir -p "$DIR"
+  if [[ ${1:-} == --vigia ]]; then
+    vigiar
+  else
+    depois_da_rodada
+  fi
+}
+
+main "$@"

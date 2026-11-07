@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# versao 2026-11-02 (filtro *.gvid): so sincroniza com o /home do Crucial. Com o home-emergencia.service (D4),
+# versao 2026-11-06 (bisync fora do ~/.cache, aviso de falha, vigia do timer): so sincroniza com o /home do Crucial. Com o home-emergencia.service (D4),
 # o home de emergencia tambem e ponto de montagem, entao o teste "mountpoint -q /home" nao basta.
 # Sincroniza ~/Drive com o Google Drive pelo rclone bisync, nos dois sentidos, a cada 15 min.
 #
@@ -33,10 +33,14 @@ CONF_DIR="$HOME/.config/rclone"
 FILTROS="$CONF_DIR/gdrive-filtros.txt"
 OAUTH_JSON="$CONF_DIR/oauth-rclone-drive-sync.json"
 LOG_DIR="$HOME/.local/state"
+# As listagens do bisync (a base dos dois lados) ficam em ~/.local/state, nunca no ~/.cache, que e
+# o padrao do rclone: em 06/11 o ~/.cache foi apagado para liberar espaco, as listagens foram junto
+# e o bisync parou ate um resync.
+WORKDIR="$HOME/.local/state/rclone/bisync"
 UNIT_DIR="$HOME/.config/systemd/user"
 MODO="${1:-configurar}"
 # Path1 e sempre a nuvem e Path2 o disco: as listagens do bisync dependem dessa ordem.
-BASE=(bisync "$REMOTO" "$LOCAL" --filters-file "$FILTROS" --drive-skip-gdocs --drive-skip-shortcuts)
+BASE=(bisync "$REMOTO" "$LOCAL" --workdir "$WORKDIR" --filters-file "$FILTROS" --drive-skip-gdocs --drive-skip-shortcuts)
 ROTINA=(--resilient --recover --max-lock 2m --max-delete 5 --conflict-resolve newer)
 
 findmnt -no SOURCE /home | grep -q '^/dev/mapper/cateim' || { echo "o /home nao e o do Crucial (home de emergencia?): nao sincronizo"; exit 1; }
@@ -118,7 +122,25 @@ EOF
   mv -- "$novo" "$FILTROS"
 }
 
+# A rodada base leva mais que os 15 min do timer: sem a pausa, a rodada do timer bate no lock dela,
+# falha e vira alarme falso no drive-sync-aviso. O timer volta sozinho quando o script termina, e a
+# marca com o pid deste script diz ao vigia (drive-sync-vigia.timer) que a pausa e de proposito.
+pausar_timer() {
+  systemctl --user is-active --quiet drive-sync.timer || return 0
+  mkdir -p "$LOG_DIR/drive-sync"
+  echo $$ > "$LOG_DIR/drive-sync/pausado"
+  systemctl --user stop drive-sync.timer
+  trap 'systemctl --user start drive-sync.timer; rm -f "$LOG_DIR/drive-sync/pausado"' EXIT
+  while [[ "$(systemctl --user show -p ActiveState --value drive-sync.service)" =~ ^(activating|deactivating)$ ]]; do
+    echo "  esperando terminar a rodada do timer que esta em andamento..."; sleep 15
+  done
+}
+
 primeira_rodada() {  # simulacao, confirmacao e resync de verdade (o mais novo vence)
+  pausar_timer
+  # Diferente da rodada normal, o resync lista tudo de novo no fim e compara os dois lados: arquivo
+  # que muda no meio (um export.sh do DIY, por exemplo) derruba a rodada base. Em 06/11 foram duas.
+  echo "aviso: ate o fim (uns 35 min), nada pode mudar dentro de $LOCAL; pare editores e agentes que mexem nele"
   echo "== simulacao da rodada base (nada e copiado) =="
   if ! rclone "${BASE[@]}" --resync --resync-mode newer --dry-run -v 2> "$LOG_DIR/drive-simulacao.txt"; then
     echo "a simulacao falhou; veja $LOG_DIR/drive-simulacao.txt"; exit 1
@@ -202,8 +224,12 @@ Description=rclone bisync de ~/Drive com o Google Drive
 
 [Service]
 Type=oneshot
+# Rodada travada vira falha, e aviso, em vez de parada muda (uma rodada normal leva uns 8 min).
+TimeoutStartSec=2h
 ExecCondition=/usr/bin/sh -c "findmnt -no SOURCE /home | grep -q '^/dev/mapper/cateim'"
 ExecStart=/usr/bin/rclone ${BASE[*]} ${ROTINA[*]} --log-file $LOG_DIR/drive-sync.log --log-level INFO
+# Avisa na tela quando a rodada falha, e quando volta a funcionar (06/11).
+ExecStopPost=-$HOME/.local/bin/drive-sync-aviso
 Nice=10
 IOSchedulingClass=idle
 EOF
@@ -218,11 +244,35 @@ OnUnitActiveSec=15min
 [Install]
 WantedBy=timers.target
 EOF
+# O vigia cobre o que o aviso da rodada nao ve: timer desligado ou fora do boot, unit que nao
+# carrega. Nesses casos nenhuma rodada acontece, entao nenhum ExecStopPost roda (06/11).
+cat > "$UNIT_DIR/drive-sync-vigia.service" <<EOF
+[Unit]
+Description=Confere se o drive-sync ainda tem rodadas (timer ligado e no boot, unit carregada)
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/bin/sh -c "findmnt -no SOURCE /home | grep -q '^/dev/mapper/cateim'"
+ExecStart=$HOME/.local/bin/drive-sync-aviso --vigia
+EOF
+cat > "$UNIT_DIR/drive-sync-vigia.timer" <<'EOF'
+[Unit]
+Description=Confere a cada hora se o drive-sync continua ligado
+
+[Timer]
+# Conta do inicio do systemd do usuario, nao do boot: no login os dois timers sobem juntos, e o
+# vigia nao pode olhar o drive-sync.timer antes de ele subir.
+OnStartupSec=10min
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy=timers.target
+EOF
 systemctl --user daemon-reload
-systemctl --user enable --now drive-sync.timer
+systemctl --user enable --now drive-sync.timer drive-sync-vigia.timer
 
 echo
-echo "PRONTO: ~/Drive sincroniza a cada 15 min. Para ver:"
-echo "  systemctl --user list-timers drive-sync.timer"
+echo "PRONTO: ~/Drive sincroniza a cada 15 min, e o vigia confere o timer a cada hora. Para ver:"
+echo "  systemctl --user list-timers 'drive-sync*'"
 echo "  tail -f $LOG_DIR/drive-sync.log"
 echo "Uma rodada que apagaria mais de 5% dos arquivos para sozinha; olhe o log antes de repetir."
