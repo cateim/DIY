@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# versao 2026-11-06 (bisync fora do ~/.cache, aviso de falha, vigia do timer): so sincroniza com o /home do Crucial. Com o home-emergencia.service (D4),
+# versao 2026-11-07 (resync com o ~/Drive em uso): so sincroniza com o /home do Crucial. Com o home-emergencia.service (D4),
 # o home de emergencia tambem e ponto de montagem, entao o teste "mountpoint -q /home" nao basta.
 # Sincroniza ~/Drive com o Google Drive pelo rclone bisync, nos dois sentidos, a cada 15 min.
 #
 #   ./drive-sync.sh            primeira vez: remoto, filtros, conferencia, snapshot, primeira
 #                              rodada (o mais novo vence) e timer
 #   ./drive-sync.sh agora      roda uma sincronizacao na hora, igual a do timer
-#   ./drive-sync.sh resync     refaz a base do bisync (obrigatorio depois de mudar os filtros)
+#   ./drive-sync.sh resync     refaz a base do bisync (obrigatorio depois de mudar os filtros);
+#                              o ~/Drive pode seguir em uso, o que mudar no meio e conferido no fim
 #
 # Fica de fora (~/.config/rclone/gdrive-filtros.txt): .git, .venv, node_modules e saidas de
 # build dos repositorios, atalhos do Google Docs e lixo do Windows. Os .env e tudo o mais que
@@ -136,13 +137,137 @@ pausar_timer() {
   done
 }
 
-primeira_rodada() {  # simulacao, confirmacao e resync de verdade (o mais novo vence)
+# O rclone grava cada nome com o %q do Go (no ~/Drive aparecem \" e ‎). Imprime um registro por
+# arquivo diferente entre as duas listagens, campos separados por NUL: lado mais novo (notebook ou
+# nuvem), caminho e detalhe. Igual e o que o check-sync do rclone tambem acha igual: mesmo tamanho e
+# data a menos de 1 ms, a precisao do Google Drive.
+divergencias() {  # listagem da nuvem (path1), listagem do disco (path2)
+  python3 - "$1" "$2" <<'PY'
+import calendar, json, re, sys, time
+
+LINHA = re.compile(r'^(\S+) +(-?\d+) \S+ \S+ (\S+) "(.*)"$')
+DATA = re.compile(r'^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(?:\.(\d{1,9}))?(Z|[+-]\d{4})$')
+JANELA = 1_000_000  # 1 ms, em ns
+
+
+def ns(texto):
+    m = DATA.match(texto)
+    if not m:
+        raise ValueError('data fora do formato')
+    seg = calendar.timegm(tuple(int(x) for x in m.groups()[:6]))
+    if m[8] != 'Z':
+        seg -= (1 if m[8][0] == '+' else -1) * (int(m[8][1:3]) * 3600 + int(m[8][3:5]) * 60)
+    return seg * 10**9 + int((m[7] or '0').ljust(9, '0'))
+
+
+def ler(caminho):
+    arquivos = {}
+    with open(caminho, encoding='utf-8') as f:
+        for n, linha in enumerate(f, 1):
+            linha = linha.rstrip('\n')
+            if not linha or linha.startswith('#'):
+                continue
+            m = LINHA.match(linha)
+            if not m:
+                sys.exit(f'{caminho}:{n}: linha fora do formato do bisync: {linha[:120]}')
+            if m[1] != '-':
+                continue
+            try:
+                arquivos[json.loads(f'"{m[4]}"')] = (int(m[2]), ns(m[3]))
+            except ValueError as erro:
+                sys.exit(f'{caminho}:{n}: {erro}: {linha[:120]}')
+    return arquivos
+
+
+def quando(t):
+    return time.strftime('%d/%m %H:%M:%S', time.localtime(t // 10**9))
+
+
+nuvem, disco = ler(sys.argv[1]), ler(sys.argv[2])
+for nome in sorted(nuvem.keys() | disco.keys()):
+    if nome not in nuvem:
+        lado, detalhe = 'notebook', 'so no notebook'
+    elif nome not in disco:
+        lado, detalhe = 'nuvem', 'so na nuvem'
+    else:
+        (tam1, t1), (tam2, t2) = nuvem[nome], disco[nome]
+        if (tam1 < 0 or tam2 < 0 or tam1 == tam2) and abs(t1 - t2) < JANELA:
+            continue
+        lado = 'notebook' if t2 - t1 >= JANELA else 'nuvem'
+        detalhe = f'nuvem {quando(t1)}, {tam1} B; notebook {quando(t2)}, {tam2} B'
+    for campo in (lado, nome, detalhe):
+        sys.stdout.buffer.write(campo.encode('utf-8', 'surrogateescape') + b'\0')
+PY
+}
+
+# Arquivo que muda no meio do resync deixa as duas listagens diferentes nele, e a rodada normal seguinte
+# cai com "out of sync" e perde a base (testado em 06/11). O touch marca o arquivo como mudado depois da
+# base, e a rodada normal leva a versao que vale para o outro lado. Mais novo no notebook (o caso dos
+# agentes): vale o notebook, sem perguntar. Mais novo ou so na nuvem: pergunta, porque "o mais novo
+# vence" traria de volta um arquivo apagado de proposito no notebook durante a rodada.
+conferir_base() {
+  local tmp i lado caminho detalhe pergunta resp
+  local -a l1 l2 regs
+  l1=("$WORKDIR"/*.path1.lst) l2=("$WORKDIR"/*.path2.lst)
+  if (( ${#l1[@]} != 1 || ${#l2[@]} != 1 )) || [[ ! -f ${l1[0]} || ! -f ${l2[0]} ]]; then
+    echo "nao achei uma listagem de cada lado em $WORKDIR"; exit 1
+  fi
+  tmp="$(mktemp)"
+  if ! divergencias "${l1[0]}" "${l2[0]}" > "$tmp"; then
+    rm -f -- "$tmp"; echo "nao consegui comparar as listagens"; exit 1
+  fi
+  mapfile -d '' -t regs < "$tmp"; rm -f -- "$tmp"
+  if (( ${#regs[@]} == 0 )); then
+    echo "  nada mudou durante a rodada base"; return 0
+  fi
+  echo "  $(( ${#regs[@]} / 3 )) arquivo(s) mudaram durante a rodada base"
+  for (( i = 0; i < ${#regs[@]}; i += 3 )); do
+    lado=${regs[i]} caminho=${regs[i+1]} detalhe=${regs[i+2]}
+    if [[ $lado == notebook ]]; then
+      echo "  notebook: $caminho ($detalhe): vai para a nuvem"
+      touch -c -- "$LOCAL/$caminho"
+      continue
+    fi
+    echo "  nuvem: $caminho ($detalhe)"
+    if [[ $detalhe == "so na nuvem" ]]; then
+      pergunta="    n = volta para o notebook, l = sai da nuvem (vai para a lixeira do Drive): "
+    else
+      pergunta="    n = vale o da nuvem, l = vale o do notebook: "
+    fi
+    resp=
+    until [[ $resp == [nl] ]]; do
+      read -r -p "$pergunta" resp || {
+        echo; echo "sem resposta: parado antes da rodada normal; o timer volta, mas falha ate outro resync"; exit 1
+      }
+    done
+    if [[ $resp == n ]]; then
+      rclone touch --no-create "$REMOTO$caminho"
+    elif [[ $detalhe == "so na nuvem" ]]; then
+      rclone deletefile "$REMOTO$caminho"
+    else
+      touch -c -- "$LOCAL/$caminho"
+    fi
+  done
+}
+
+rodada_normal() {  # a mesma do timer, que volta a exigir que as duas listagens batam
+  echo "== rodada normal (uns 8 min) =="
+  if ! rclone "${BASE[@]}" "${ROTINA[@]}" --log-file "$LOG_DIR/drive-sync.log" --log-level INFO; then
+    echo "a rodada normal falhou; veja $LOG_DIR/drive-sync.log"; exit 1
+  fi
+  echo "  rodada normal concluida: a base nova bate dos dois lados"
+}
+
+primeira_rodada() {  # simulacao, confirmacao, resync (o mais novo vence), conferencia e rodada normal
+  command -v python3 >/dev/null || { echo "a conferencia do resync precisa do python3"; exit 1; }
   pausar_timer
-  # Diferente da rodada normal, o resync lista tudo de novo no fim e compara os dois lados: arquivo
-  # que muda no meio (um export.sh do DIY, por exemplo) derruba a rodada base. Em 06/11 foram duas.
-  echo "aviso: ate o fim (uns 35 min), nada pode mudar dentro de $LOCAL; pare editores e agentes que mexem nele"
+  # O resync lista os dois lados mais de uma vez e, por padrao, exige no fim que as listagens batam:
+  # arquivo que mudava no meio (agente, editor, export.sh do DIY) derrubava a rodada base inteira, tres
+  # vezes em 06/11. Aqui a exigencia fica desligada (--check-sync=false), o conferir_base resolve o que
+  # mudou no meio, e a rodada normal, que exige, confirma.
+  echo "o $LOCAL pode seguir em uso: o que mudar durante a rodada base e conferido no fim (uns 40 min ao todo)"
   echo "== simulacao da rodada base (nada e copiado) =="
-  if ! rclone "${BASE[@]}" --resync --resync-mode newer --dry-run -v 2> "$LOG_DIR/drive-simulacao.txt"; then
+  if ! rclone "${BASE[@]}" --resync --resync-mode newer --check-sync=false --dry-run -v 2> "$LOG_DIR/drive-simulacao.txt"; then
     echo "a simulacao falhou; veja $LOG_DIR/drive-simulacao.txt"; exit 1
   fi
   local n
@@ -151,8 +276,13 @@ primeira_rodada() {  # simulacao, confirmacao e resync de verdade (o mais novo v
   grep 'Skipped copy as --dry-run' "$LOG_DIR/drive-simulacao.txt" | head -n 15 | sed 's/^/    /' || true
   read -r -p "Fazer a rodada base de verdade? Digite SIM: " ok
   [[ "$ok" == "SIM" ]] || { echo "parado; nada foi copiado"; exit 1; }
-  rclone "${BASE[@]}" --resync --resync-mode newer -v --log-file "$LOG_DIR/drive-sync.log"
-  echo "  rodada base concluida (log em $LOG_DIR/drive-sync.log)"
+  echo "== rodada base (uns 16 min; acompanhe com tail -f $LOG_DIR/drive-sync.log) =="
+  if ! rclone "${BASE[@]}" --resync --resync-mode newer --check-sync=false -v --log-file "$LOG_DIR/drive-sync.log"; then
+    echo "a rodada base falhou; veja $LOG_DIR/drive-sync.log"; exit 1
+  fi
+  echo "== o que mudou durante a rodada base =="
+  conferir_base
+  rodada_normal
 }
 
 case "$MODO" in
