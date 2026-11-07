@@ -57,6 +57,12 @@ causa() {
     echo "O bisync perdeu a base (as listagens). Para voltar: drive-sync.sh resync"
     return
   fi
+  # A primeira linha de erro aqui seria um "Size not equal in listing" solto. As listagens dos dois
+  # lados não batem (um resync parado antes da rodada normal, por exemplo) e a base foi descartada.
+  if grep -q 'path1 and path2 are out of sync' <<<"$linhas"; then
+    echo "As listagens dos dois lados não batem, e o bisync descartou a base. Para voltar: drive-sync.sh resync"
+    return
+  fi
   # "ERROR : " nas falhas da rodada, "CRITICAL: " quando o rclone nem começa.
   erro=$(grep -m1 -E ' (ERROR|CRITICAL) ?: ' <<<"$linhas" | sed -E 's/^[0-9/ :]+ (ERROR|CRITICAL) ?: //' | cut -c1-200 || true)
   echo "${erro:-Sem detalhe no log (resultado: ${SERVICE_RESULT:-?}, código ${EXIT_STATUS:-?}).}"
