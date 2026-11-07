@@ -1,0 +1,29 @@
+# WireGuard: a unica porta de entrada do stack. So as ferramentas vem do
+# pacote (wireguard-tools); o tunel em si e o modulo WireGuard do kernel do host.
+#
+# Base Debian trixie, sem imagem de terceiro: a da linuxserver,
+# por padrao, deixa o PC alcancar tudo que o container alcanca e imprime as chaves
+# dos peers no log. Aqui o firewall do entrypoint deixa o PC chegar so no Firebird.
+
+FROM debian:trixie-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# wireguard-tools: wg (chaves e config do wg0).
+# iproute2:        ip (cria o wg0 e poe o IP dele).
+# iptables:        firewall do tunel e o NAT ate o Firebird.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      wireguard-tools \
+      iproute2 \
+      iptables \
+      tzdata \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY entrypoint.sh /opt/wireguard/entrypoint.sh
+RUN chmod +x /opt/wireguard/entrypoint.sh
+
+# 51820/udp interno. O host publica WG_PORT (compose).
+EXPOSE 51820/udp
+
+ENTRYPOINT ["/opt/wireguard/entrypoint.sh"]

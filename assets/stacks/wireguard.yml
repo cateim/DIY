@@ -1,0 +1,95 @@
+# Stack de exemplo: um banco sem porta no host, alcancavel so por um WireGuard que
+# roda como segundo container da mesma stack. Guia: docs/wireguard.md
+#
+# Vai pelo metodo Repository do Portainer: as duas imagens sao buildadas a partir
+# do repo da stack (o Web editor nao tem onde buildar). Dados de exemplo: troque
+# "banco-legado" pelo nome da sua stack e o servico firebird pelo seu banco.
+#
+# Variaveis no Portainer (Environment variables):
+#   WG_ENDPOINT  IP publico ou DNS da VPS, ex.: 203.0.113.10 (obrigatoria)
+#   WG_PEERS     nome:final por virgula, ex.: pc-01:10,note-remoto:11 (obrigatoria)
+#   WG_PORT      porta UDP no host (padrao 51820)
+
+name: banco-legado
+
+# IP fixo do banco na rede da stack. O WireGuard roteia o tunel ate ele e os apps
+# conectam nele. Um lugar so: o ipv4_address do banco e o FB_IP do wireguard leem
+# daqui.
+x-banco-ip: &banco-ip 10.77.1.10
+
+services:
+  firebird:
+    # A imagem do seu banco, buildada do Dockerfile da raiz do repo da stack.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: banco-legado-firebird:local
+    # Builda em todo deploy: a imagem so existe aqui, e sem isso o redeploy do
+    # webhook reusaria a antiga.
+    pull_policy: build
+    container_name: banco-legado-firebird
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - TZ=America/Sao_Paulo
+    # Sem "ports", de proposito: a unica entrada e o WireGuard abaixo. O banco tem
+    # que ouvir em todas as interfaces do container (no Firebird,
+    # RemoteBindAddress = 0.0.0.0), senao o tunel nao chega nele.
+    volumes:
+      - /srv/banco-legado/data:/firebird/data
+    networks:
+      banco-legado-net:
+        ipv4_address: *banco-ip
+
+  wireguard:
+    build:
+      context: docker/wireguard
+    image: banco-legado-wireguard:trixie
+    pull_policy: build
+    container_name: banco-legado-wireguard
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    # NET_ADMIN cria o wg0 e o firewall no netns deste container (nao no do host).
+    # O tunel usa o modulo WireGuard do kernel do host.
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+    environment:
+      TZ: America/Sao_Paulo
+      WG_ENDPOINT: ${WG_ENDPOINT:?defina WG_ENDPOINT (IP publico ou DNS da VPS)}
+      WG_PORT: ${WG_PORT:-51820}
+      WG_PEERS: ${WG_PEERS:?defina WG_PEERS (ex. pc-01:10)}
+      FB_IP: *banco-ip
+    # A unica porta publicada da stack. O WireGuard nao responde a pacote sem chave
+    # valida, entao ela fica em todas as interfaces: usuarios remotos chegam de
+    # qualquer IP. Liberar a mesma porta UDP na Security List da Oracle.
+    ports:
+      - "${WG_PORT:-51820}:51820/udp"
+    volumes:
+      # Chaves do servidor e dos PCs, e o .conf de cada PC. Nunca versionar.
+      - /srv/banco-legado/wireguard:/config
+    networks:
+      - banco-legado-net
+    healthcheck:
+      # So a porta: o "wg show" completo gravaria o IP de casa de cada PC no estado
+      # do container, visivel no Portainer.
+      test: ["CMD", "wg", "show", "wg0", "listen-port"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  banco-legado-net:
+    name: banco-legado-net
+    driver: bridge
+    # Sub-rede fixa, para o banco ter IP fixo. Os IPs automaticos ficam no .128/25,
+    # longe do .10. Escolha uma faixa que nao colida com a LAN do escritorio nem com
+    # o tunel (10.77.0.0/24).
+    ipam:
+      config:
+        - subnet: 10.77.1.0/24
+          ip_range: 10.77.1.128/25
