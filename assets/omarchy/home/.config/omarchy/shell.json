@@ -70,6 +70,9 @@
           "id": "omarchy.tailscale"
         },
         {
+          "id": "syncwatch"
+        },
+        {
           "id": "omarchy.agents"
         },
         {
