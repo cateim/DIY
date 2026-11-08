@@ -1,5 +1,5 @@
 # Pacotes instalados depois do Omarchy, dos repositórios core/extra/multilib e do
-# repositório do Omarchy (google-chrome, spotify e rustdesk vêm dele).
+# repositório do Omarchy (google-chrome, spotify, rustdesk e claude-desktop vêm dele).
 # Levantado do pacman.log em 03/11/2026: só os explícitos fora das listas do Omarchy.
 #
 # Instalar:  omarchy pkg add $(grep -vE '^\s*(#|$)' assets/omarchy/packages.txt | cut -d' ' -f1)
@@ -47,6 +47,7 @@ dfu-util
 gperf
 swig
 git-lfs
+claude-desktop   # 07/11/2026: beta oficial do Linux, pelo menu Install > AI > Claude Desktop (docs/omarchy.md, Parte 4)
 
 # ---- LSPs dos plugins do Claude Code (07/11/2026; o resto na Parte 4 do docs/omarchy.md) ----
 typescript-language-server   # typescript-lsp; puxa o typescript
