@@ -45,6 +45,7 @@ As versões seguem o esquema **CalVer `YYYY.M.R`** (ano, mês sem zero à esquer
 ### 🗑️ Removed
 
 - **Clone `cateim.keyboard-layout`** ([`assets/omarchy/`](./assets/omarchy/), [`docs/omarchy.md`](./docs/omarchy.md), Parte 3.2): apagado do notebook e do espelho depois que a troca entre us e br pelo widget original da barra funcionou, no notebook e pelo VNC (05/11/2026). A última versão fica no histórico do git (commit `c5b6531`).
+- **Graphify** ([`docs/omarchy.md`](./docs/omarchy.md), Parte 4): saíram o guia `docs/graphify.md`, as referências a ele no `README.md` e em [`docs/rea.md`](./docs/rea.md) e o `uv tool install graphifyy` da lista do ambiente de desenvolvimento. Em 15 execuções o grafo custou até 8,9 milhões de tokens novos e quase não foi consultado, então a skill, a CLI e a regra global saíram em 08/11/2026.
 
 ### 🐛 Fixed
 

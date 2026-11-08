@@ -185,7 +185,6 @@ As três listas ficam em [`assets/omarchy/`](../assets/omarchy/) e se instalam p
 **Ambiente de desenvolvimento**, fora das listas:
 
 ```bash
-uv tool install graphifyy
 uv tool install semgrep
 uv tool install clang-format
 uv tool install --python 3.12 oci-cli    # OCI CLI num Python 3.12 do uv (o do sistema é 3.14); credencial no passo 14 da Parte 5

@@ -58,7 +58,7 @@ Trecho real de uma Evidence (`rea inspect-go-binary /usr/bin/tailscale`):
 | **"Vi uma feature e quero no meu produto"** | Entender como um app Electron ou nativo implementou algo e reconstruir no nosso código, com a evidência ao lado                                                                                | prompt `investigate_feature`, `analyze-javascript-application`, motor nativo                                                | ✅ JS/Electron e nativo (Ghidra)                                                                       |
 | **Hardware e rede de IoT**                  | Decodificar UART, I2C ou SPI gravado num analisador lógico; ler o pcap de um device                                                                                                            | `decode-signal-recording`, `inspect-pcap-capture`                                                                           | ✅ Desde 06/11/2026 ([Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir))             |
 
-**Onde não entra:** no nosso próprio código-fonte. Para arquitetura de repositório, use o [Graphify](./graphify.md) e a leitura normal; a própria skill do REA manda pular esse caso.
+**Onde não entra:** no nosso próprio código-fonte. Para arquitetura de repositório, use a leitura normal; a própria skill do REA manda pular esse caso.
 
 **Ambientes para agentes:** o REA também transforma um HAR de um app nosso em um ambiente onde um agente treina ou é avaliado sem tocar a produção (`rea environment-build sessao.har ./meu-env`). Rodar esse ambiente pede o AgentEnv e Docker, então essa parte fica no servidor, não no notebook.
 
@@ -536,4 +536,3 @@ O `uninstall` não mexe no Node, nas Evidence, nas capturas, em outras skills ne
 - [Instalação e setup](https://github.com/morluto/rea/blob/main/docs/installation.md) · [Configuração por cliente](https://github.com/morluto/rea/blob/main/docs/client-configuration.md)
 - [CLI e Evidence](https://github.com/morluto/rea/blob/main/docs/cli.md) · [Contratos do MCP e catálogo de ferramentas](https://github.com/morluto/rea/blob/main/docs/mcp-contracts.md)
 - [Imagens ESP](https://github.com/morluto/rea/blob/main/docs/esp-image.md) · [Dumps de flash ESP](https://github.com/morluto/rea/blob/main/docs/esp-flash-image.md) · [Firmware](https://github.com/morluto/rea/blob/main/docs/firmware-analysis.md)
-- [Graphify](./graphify.md), para o nosso próprio código-fonte
