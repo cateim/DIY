@@ -8,7 +8,7 @@
 # Como: guarda uma cópia de cada arquivo vigiado e a versão de cada pacote vigiado em
 # ~/.local/state/vigia-omarchy/base/. Cada execução compara com o atual, escreve o que mudou (com
 # o diff) em ~/.local/state/vigia-omarchy/relatorio.txt e manda uma notificação. Também confere
-# erros na config do Hyprland, atalhos repetidos, se os plugins cateim.* e o widget do SyncWatch
+# erros na config do Hyprland, atalhos repetidos, se os plugins cateim.* e o widget do DriveSync
 # seguem ligados e se o shell do Omarchy ainda roda o código de antes da atualização.
 # Quando roda: hooks post-update (dentro do "omarchy update", depois das migrações) e post-boot
 # (pega o que o update atualiza depois do hook: pacotes do AUR e o mise).
@@ -113,7 +113,7 @@ conferir_hyprland() {
 }
 
 conferir_plugins() {
-  # Só os plugins cateim.* e o syncwatch (widget que vem no pacote do SyncWatch, com id próprio) que
+  # Só os plugins cateim.* e o drivesync (widget que vem no pacote do DriveSync, com id próprio) que
   # o shell.json usa (barra ou lista de plugins): um clone desligado de propósito fica no disco e
   # não é problema.
   local lista id
@@ -125,7 +125,7 @@ conferir_plugins() {
     if ! jq -e --arg id "$id" 'any(.[]; .id == $id and .enabled == true)' <<<"$lista" >/dev/null; then
       registrar "PLUGIN $id está no shell.json mas não aparece ligado (ou o formato de omarchy-plugin-list mudou)"
     fi
-  done < <(jq -r '[.bar.layout[]?[]?.id?, .plugins[]?.id?] | .[] | select(. != null and (startswith("cateim.") or . == "syncwatch"))' \
+  done < <(jq -r '[.bar.layout[]?[]?.id?, .plugins[]?.id?] | .[] | select(. != null and (startswith("cateim.") or . == "drivesync"))' \
     "$HOME/.config/omarchy/shell.json" 2>/dev/null | sort -u)
 }
 

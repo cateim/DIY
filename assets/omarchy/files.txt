@@ -60,8 +60,8 @@
 ~/.config/systemd/user/vnc-sessao.service
 
 # ---- Google Drive (drive-sync) ----
-# Desde 10/11/2026 quem roda o drive-sync é o SyncWatch: as units vêm do pacote
-# dele e a ~/.config/syncwatch nasce da assunção (T), que lê o drive-sync.sh.
+# Desde 10/11/2026 quem roda o drive-sync é o DriveSync: as units vêm do pacote
+# dele e a ~/.config/drivesync nasce da assunção (T), que lê o drive-sync.sh.
 # Por isso nada daqui: espelhar a config faria a reinstalação recusar a
 # assunção e rodar o bisync sem as listagens. O drive-sync.sh e o aviso ficam
 # em scripts/, só para o primeiro resync (Parte 5).
