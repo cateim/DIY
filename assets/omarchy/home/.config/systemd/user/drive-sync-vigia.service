@@ -1,7 +1,0 @@
-[Unit]
-Description=Confere se o drive-sync ainda tem rodadas (timer ligado e no boot, unit carregada)
-
-[Service]
-Type=oneshot
-ExecCondition=/usr/bin/sh -c "findmnt -no SOURCE /home | grep -q '^/dev/mapper/cateim'"
-ExecStart=<<HOME>>/.local/bin/drive-sync-aviso --vigia
