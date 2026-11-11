@@ -354,6 +354,40 @@ Em **Opções** → **Conexão**, defina a porta de entrada como **62609** (a me
 abra essa porta TCP e UDP no roteador. Sem redirecionamento, você só consegue conexões de saída e a
 velocidade despenca.
 
+### 4.6. Limite de seed
+
+Em **Opções** → **BitTorrent**:
+
+| Configuração                                 | Valor                         |
+| :------------------------------------------- | :---------------------------- |
+| Quando a proporção atingir                   | **1.0**                       |
+| Quando o tempo total de seed atingir         | **10080 minutos** (7 dias)    |
+| Então                                        | **Parar torrent**             |
+| Fila de torrents: não contar torrents lentos | **Marcado**                   |
+| Downloads / uploads / torrents ativos        | 5 / 5 / 10                    |
+
+> [!IMPORTANT]
+> Sem este limite **nenhum torrent sai do qBittorrent, nunca.** O Radarr e o Sonarr só apagam um
+> torrent (o **Remove Completed** das seções 6.7 e 7.3) depois que o qBittorrent o para pela regra
+> de seed. Em 10/11/2026 esta instalação tinha 132 torrents (173 GB) que nenhum arquivo da
+> biblioteca usava mais: releases trocados por upgrade ou REPACK e filmes baixados em 2 ou 3
+> versões. A limpeza liberou 88,6 GB na hora.
+>
+> O "não contar torrents lentos" importa porque só 5 semeiam ao mesmo tempo: sem ele, os da fila
+> nunca somam tempo de seed e nunca atingem o limite.
+
+Apagar do qBittorrent um torrent já importado não tira nada da biblioteca: o arquivo do
+`Downloads` e o da biblioteca são **hardlinks**, o mesmo arquivo no disco com dois nomes. O espaço
+só volta quando os dois nomes somem. Antes de apagar um torrent, confira que cada arquivo grande
+dele está na biblioteca (`stat -c %h` maior que 1): packs com OVA ou filme costumam ter arquivos
+que o Sonarr nunca importou, e esses só existem no `Downloads`.
+
+> [!NOTE]
+> Quem **regrava** um MKV da biblioteca (por exemplo, para embutir uma legenda) cria um arquivo
+> novo, e a cópia do `Downloads` deixa de ser hardlink: o espaço dobra. Remova o torrent (com os
+> arquivos) antes do remux. Gravar por cima do mesmo arquivo não resolve, porque o qBittorrent
+> ainda espera os bytes originais e baixa tudo de novo numa reverificação.
+
 ---
 
 ## 🔍 Parte 5: Prowlarr e FlareSolverr
@@ -741,6 +775,10 @@ de nomenclatura de anime e a numeração absoluta.
 ### 7.3. Cliente de download
 
 Igual ao Radarr, com **Category:** `tv-sonarr`.
+
+Em **Media Management** → **File Management**: **Propers and Repacks** → `Do not Prefer`, como no
+Radarr. Em "Prefer and Upgrade" o Sonarr baixa cada REPACK e depois recusa a importação; em
+10/11/2026 havia 21 deles (20 GB) presos na fila por isso.
 
 ---
 
@@ -1584,9 +1622,13 @@ Tudo isso vive em `/srv/<serviço>`, no disco do sistema, e é coberto pelos sna
 - **Seedar é o preço da entrada.** O qBittorrent continua semeando depois que o Radarr importa,
   porque o hardlink mantém o arquivo original vivo. Apagar do qBittorrent apaga uma das duas
   referências, e a mídia continua na biblioteca.
-- **Espaço em disco.** A pasta `Downloads` cresce sem parar. Hoje ela ocupa mais que a biblioteca
-  inteira nesta instalação. Defina uma regra de seed (razão ou tempo) no qBittorrent para os torrents
-  se auto-removerem.
+- **Espaço em disco.** Sem regra de seed, a pasta `Downloads` cresce sem parar. A regra da seção
+  4.6 (ratio 1.0 ou 7 dias) faz os torrents saírem sozinhos depois da importação.
+- **Apagar algo já assistido sem que volte.** Episódio: o Sonarr desmonitora sozinho o que é
+  apagado. Filme: ele volta pela lista "Plex Watchlist" do Radarr e pelo pedido automático do
+  Seerr, que lê a Watchlist a cada 3 minutos, então tire da Watchlist e apague no Radarr marcando
+  **Add exclusion**. Em qualquer caso, o
+  disco só libera quando o torrent também sai do qBittorrent.
 - **Uma raiz por tipo de conteúdo.** Cada pasta raiz extra é uma chance de mídia acabar em lugar
   errado e sumir do player.
 - **FlareSolverr é pesado.** Ele sobe um Chrome headless a cada desafio. Numa placa ARM com 8 GB,
