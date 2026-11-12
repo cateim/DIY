@@ -64,7 +64,8 @@
 # dele e a ~/.config/drivesync nasce da assunção (T), que lê o drive-sync.sh.
 # Por isso nada daqui: espelhar a config faria a reinstalação recusar a
 # assunção e rodar o bisync sem as listagens. O drive-sync.sh e o aviso ficam
-# em scripts/, só para o primeiro resync (Parte 5).
+# em scripts/, só para o primeiro resync (Parte 5). Os filtros vivem no heredoc
+# do drive-sync.sh: mudou o filters.txt com F, copie para lá (Parte 6).
 
 # ---- LSPs dos plugins do Claude Code (o /usr/local só vai com install.sh --system) ----
 ~/.bundle/config
