@@ -406,6 +406,8 @@ Acesse `http://192.168.x.x:9696`.
 
 Depois, em cada indexador que exija Cloudflare, adicione a tag `flaresolverr`.
 
+> **Limite de memória.** O serviço `flaresolverr` da stack tem `mem_limit` e `memswap_limit` de `1g`. O Chromium dele deixa sessões órfãs abertas por dias e, sem teto, enche a RAM e o swap do OrangePi. Se ele for morto pelo OOM, o `restart: unless-stopped` o levanta de novo.
+
 ### 5.2. Conectar Radarr e Sonarr
 
 **Settings** → **Apps** → **+** → **Radarr**:
