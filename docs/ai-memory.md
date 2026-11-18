@@ -106,12 +106,12 @@ O sistema tem **duas metades** que precisam ser atualizadas e mantidas na **mesm
 
 ### 4.1. Atualizar o Cérebro (Orange Pi / Portainer)
 
-A stack fixa a versão da imagem (`akitaonrails/ai-memory:3.3.3`), a mesma do Espião. Com a tag fixa, o Portainer baixa a imagem nova assim que a tag muda, e a versão que roda é sempre a que está escrita no YAML.
+A stack fixa a versão da imagem (`akitaonrails/ai-memory:3.4.6`), a mesma do Espião. Com a tag fixa, o Portainer baixa a imagem nova assim que a tag muda, e a versão que roda é sempre a que está escrita no YAML.
 
 Para atualizar:
 
 1. Veja a versão nova em [Docker Hub → Tags](https://hub.docker.com/r/akitaonrails/ai-memory/tags) e leia as notas dela no [CHANGELOG do projeto](https://github.com/akitaonrails/ai-memory/blob/main/CHANGELOG.md).
-2. Portainer → **Stacks** → `ai-memory` → **Editor**: troque a tag (ex.: `3.3.3` → `3.3.4`) e clique em **Update the stack**.
+2. Portainer → **Stacks** → `ai-memory` → **Editor**: troque a tag (ex.: `3.4.6` → `3.4.7`) e clique em **Update the stack**.
 3. Troque a mesma tag em [`assets/stacks/ai-memory.yml`](../assets/stacks/ai-memory.yml), para o repositório continuar igual ao servidor.
 4. Atualize o Espião para a mesma versão (seção 4.2).
 
@@ -120,7 +120,7 @@ Para atualizar:
 **Alternativa via SSH (sem Portainer):**
 
 ```bash
-docker pull akitaonrails/ai-memory:3.3.3
+docker pull akitaonrails/ai-memory:3.4.6
 # recria o container com a imagem nova (ajuste o caminho da stack):
 docker compose -f /caminho/da/stack/ai-memory.yml up -d
 ```

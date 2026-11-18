@@ -3,8 +3,7 @@ sign.key
 .env
 .git
 docs/superpowers/*
-actual_import/*
-graphify-out/
+*.code-workspace
 
 # ---- Controle de trabalho ----
 # Rascunho de trabalho, nao documentacao: muda a cada sessao e cita o que

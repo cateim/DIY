@@ -64,6 +64,7 @@ ghidra
 jdk21-openjdk
 wireshark-cli      # tshark e capinfos: pcap e campos de protocolo
 sigrok-cli         # 0.7.2: gravação de analisador lógico
+flashrom           # 1.8.0: leitura da flash SPI com a CH341A (dump do módulo Wi-Fi da lavadora, 15/11/2026)
 binwalk            # 3.1.0: regiões de firmware
 wabt               # 1.0.42: WebAssembly
 python-pwntools    # 4.15.0: layout de ELF e core dump

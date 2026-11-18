@@ -1,5 +1,6 @@
 {
   "bar": {
+    "background": "opaque",
     "layout": {
       "center": [
         {
@@ -67,13 +68,13 @@
           "id": "omarchy.keyboard-layout"
         },
         {
-          "id": "omarchy.tailscale"
-        },
-        {
-          "id": "drivesync"
+          "id": "drive-sync"
         },
         {
           "id": "omarchy.agents"
+        },
+        {
+          "id": "omarchy.tailscale"
         },
         {
           "id": "omarchy.bluetooth"
@@ -93,15 +94,16 @@
       ],
       "tray": []
     },
-    "position": "top",
-    "transparent": true
+    "position": "top"
   },
   "dock": {
     "pinned": [
       "org.gnome.Nautilus",
       "foot",
       "omacalc",
-      "omawrite"
+      "omawrite",
+      "google-chrome",
+      "com.anthropic.Claude"
     ]
   },
   "idle": {
