@@ -1,0 +1,9 @@
+# Node do mise na frente do /usr/bin (o node 22 do pacman) em todo processo da sessão.
+# Sem isso, o Claude aberto pelo atalho de agente do Omarchy (foot -e claude, sem shell
+# interativo) cai no node 22, e os hooks do context-mode 2.x, que exigem Node 24.15+,
+# falham com NODE_TOO_OLD. Os wrappers do mise continuam na frente, como o Omarchy quer.
+# Mudanças pedem novo login.
+_mise_wrap="$HOME/.local/share/mise/command-wrappers/bin"
+_mise_node="$HOME/.local/share/mise/installs/node/latest/bin"
+PATH="$_mise_wrap:$_mise_node:${PATH#"$_mise_wrap":}"
+unset _mise_wrap _mise_node

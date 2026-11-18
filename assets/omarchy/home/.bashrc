@@ -22,6 +22,10 @@ alias grep='grep --color=auto'
 alias diff='diff --color=auto'
 alias ip='ip -color=auto'
 
+# Antigravity CLI com Remote Control sempre ativado
+alias agy="agy --remote-control"
+alias antigravity="antigravity --remote-control"
+
 # Claude Code: started from ~, open it in ~/Work, like the Omarchy agent keybinding does.
 # Claude never stores trust for ~, and cwd = ~ makes user, project and local settings one file.
 claude() {
@@ -31,6 +35,10 @@ claude() {
     command claude "$@"
   fi
 }
+
+# Claude Code via API Key (US$ 100 promocionais). The key lives in ~/.config/claude-api.env
+# (mode 600, never mirrored to DIY), read only when the alias runs.
+alias claude_api='ANTHROPIC_API_KEY="$(cat ~/.config/claude-api.env)" claude -p'
 
 # Attach ble.sh (keep this as the last line)
 [[ ! ${BLE_VERSION-} ]] || ble-attach

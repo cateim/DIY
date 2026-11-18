@@ -47,6 +47,7 @@
 ~/.config/mise/config.toml
 ~/.config/autostart/bitwarden.desktop
 ~/.local/share/applications/sideswap.desktop
+~/.local/share/applications/windows-vm.desktop
 ~/.local/bin/icones-pastas
 
 # ---- Acesso remoto (wayvnc) ----
@@ -61,7 +62,7 @@
 
 # ---- Google Drive (drive-sync) ----
 # Desde 10/11/2026 quem roda o drive-sync é o DriveSync: as units vêm do pacote
-# dele e a ~/.config/drivesync nasce da assunção (T), que lê o drive-sync.sh.
+# dele e a ~/.config/drive-sync nasce da assunção (T), que lê o drive-sync.sh.
 # Por isso nada daqui: espelhar a config faria a reinstalação recusar a
 # assunção e rodar o bisync sem as listagens. O drive-sync.sh e o aviso ficam
 # em scripts/, só para o primeiro resync (Parte 5). Os filtros vivem no heredoc
@@ -69,6 +70,7 @@
 
 # ---- LSPs dos plugins do Claude Code (o /usr/local só vai com install.sh --system) ----
 ~/.bundle/config
+~/.config/uwsm/env.d/90-node-mise
 /usr/local/bin/jdtls
 
 # ---- Sistema (/etc): install.sh --system, com sudo ----

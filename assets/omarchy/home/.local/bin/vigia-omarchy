@@ -113,7 +113,7 @@ conferir_hyprland() {
 }
 
 conferir_plugins() {
-  # Só os plugins cateim.* e o drivesync (widget que vem no pacote do DriveSync, com id próprio) que
+  # Só os plugins cateim.* e o drive-sync (widget que vem no pacote do DriveSync, com id próprio) que
   # o shell.json usa (barra ou lista de plugins): um clone desligado de propósito fica no disco e
   # não é problema.
   local lista id
@@ -125,7 +125,7 @@ conferir_plugins() {
     if ! jq -e --arg id "$id" 'any(.[]; .id == $id and .enabled == true)' <<<"$lista" >/dev/null; then
       registrar "PLUGIN $id está no shell.json mas não aparece ligado (ou o formato de omarchy-plugin-list mudou)"
     fi
-  done < <(jq -r '[.bar.layout[]?[]?.id?, .plugins[]?.id?] | .[] | select(. != null and (startswith("cateim.") or . == "drivesync"))' \
+  done < <(jq -r '[.bar.layout[]?[]?.id?, .plugins[]?.id?] | .[] | select(. != null and (startswith("cateim.") or . == "drive-sync"))' \
     "$HOME/.config/omarchy/shell.json" 2>/dev/null | sort -u)
 }
 
