@@ -73,6 +73,9 @@
 ~/.config/uwsm/env.d/90-node-mise
 /usr/local/bin/jdtls
 
+# ---- Agentes do Claude Code (o resto do ~/.claude fica fora: dados pessoais) ----
+~/.claude/agents/
+
 # ---- Sistema (/etc): install.sh --system, com sudo ----
 /etc/limine-entry-tool.d/alienware-display.conf
 /etc/systemd/system/cloudflared.service

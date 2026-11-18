@@ -170,6 +170,19 @@ Os pacotes dos servidores estão na [Parte 4](#parte-4-pacotes); aqui ficam os d
 | `~/.bundle/config`     | `BUNDLE_PATH` em `~/.local/share/gem`: o bundler instala as gems no diretório do usuário (o `Gem.user_dir` do Arch). O `ruby-lsp` monta um bundle próprio em `.ruby-lsp/` de cada projeto e roda `bundle install`; sem isso ele tentava gravar em `/usr/lib/ruby/gems` e caía com `Bundler::PermissionError`. A primeira subida baixa umas 14 gems do rubygems.org e compila as nativas (uns 30 s); as seguintes sobem em 3 s.                                                                |
 | `/usr/local/bin/jdtls` | Wrapper que roda o `/usr/bin/jdtls` com o `--java-executable` do Java 25 (`jre25-openjdk-headless`). O `jdtls` 1.63 exige Java 25 (os bundles OSGi pedem JavaSE-25), mas o PKGBUILD do AUR ainda declara `java-runtime>=21`, e com o 21 ele saía com `exit 13`. O java padrão do sistema segue no 21 por causa do Ghidra e do apktool do REA. Fica no `/usr/local/bin` porque ele vem antes do `/usr/bin` no PATH; o `~/.local/bin` vem depois e não serviria. Vai com `install.sh --system`. |
 
+### 3.10 Agentes do Claude Code (`~/.claude/agents/`)
+
+Os quatro agentes de usuário que a sessão principal do Claude Code chama conforme o tipo de tarefa, em qualquer projeto. A regra que diz quem faz o quê é a seção "Subagent routing" do `~/.claude/CLAUDE.md`, e o effort da sessão principal (Opus 5.5 em `high`) vem do `modelSettings` do `~/.claude/settings.json`; os dois ficam fora do espelho. Os agentes são escritos em inglês e repetem as regras da casa (português com acento, sem travessão, sem commit, sem ler o `.env`), para valer mesmo sem o `CLAUDE.md`.
+
+| Arquivo        | O que muda                                                                                                                                                                                    |
+| :------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `architect.md` | Opus em `xhigh`: spec, design e plano depois das decisões tomadas; código que mexe com dinheiro, corretora, pagamento, segredo, login ou sessão; depuração depois de duas tentativas falhas. |
+| `executor.md`  | Opus em `high`: uma feature, um bugfix ou uma tarefa de plano aprovado, com o teste antes do código. Tarefas independentes podem rodar em paralelo, uma por agente.                          |
+| `scribe.md`    | Opus em `medium`: a documentação que acompanha o código (CHANGELOG, `CHECKLIST.md`, README, guias, `.env.example`). Não mexe em código nem em teste.                                         |
+| `reviewer.md`  | Fable em `high`, só leitura: a revisão final independente de um plano, de um branch ou de um diff grande, e a passada antes de dinheiro real ou produção. Só reporta, nunca corrige.          |
+
+> ℹ️ O Claude Code só carrega agente novo ou alterado numa sessão nova. O `advisorModel` do `settings.json` fica em `opus`: os agentes Opus herdam esse advisor, e o `reviewer` fica sem, porque o advisor precisa ser pelo menos do nível do modelo que o consulta.
+
 ## Parte 4: Pacotes
 
 As três listas ficam em [`assets/omarchy/`](../assets/omarchy/) e se instalam pela [Parte 2](#parte-2-reinstalação-do-zero). Ficaram de fora das listas, cada um com passo próprio: `tailscale`, `voxtype-bin` e os `mkinitcpio-netconf/tinyssh/utils` (instalados pelo `ssh-no-boot.sh`).
@@ -334,7 +347,7 @@ Filtro do drive-sync mudado com `F` no DriveSync: copie o `~/.config/drive-sync/
 - O repositório é público. Senha, token, chave e o `.onion` ficam só no `private.env`, com cópia no Bitwarden; o `export.sh` se recusa a terminar se achar um deles no espelho, chave de API (`sk-ant-`, `*API_KEY=` com valor) incluída. Uma chave que o shell usa mora num arquivo próprio fora do `files.txt`, nunca no `~/.bashrc`.
 - Os scripts de disco da migração (formatação do Crucial, cópia do NAS) estão em `~/Documents/Migracao-Omarchy`, ainda fora do DIY: formatam disco e precisam de revisão antes de virar guia.
 - Estado de app (perfis do navegador, Antigravity, Bitwarden, Telegram) não entra no espelho: volta pelo login ou pelo sync de cada app.
-- O `~/.claude` (Claude Code) fica fora deste guia por decisão: tem conteúdo pessoal e outro ciclo de vida.
+- O `~/.claude` (Claude Code) fica fora deste guia por decisão, menos os agentes de `~/.claude/agents/` ([Parte 3.10](#310-agentes-do-claude-code-claudeagents)): o resto tem conteúdo pessoal e outro ciclo de vida.
 
 ---
 
