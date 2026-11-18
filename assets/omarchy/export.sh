@@ -21,8 +21,9 @@ PLACEHOLDER_KEYS=(WAYVNC_PASSWORD CHROMIUM_OAUTH_CLIENT_SECRET CHROMIUM_OAUTH_CL
 EXCLUDES=(CHECKLIST.md '*.bak.*' '*.bak' node_modules)
 
 # Nunca podem sair: chave privada, token do GitHub, senha/segredo/token em
-# claro, IP do Tailscale (100.64.0.0/10) ou de rede local, e-mail e .onion.
-LEAK_PATTERNS='-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{20,}|(password|passwd|secret|token)[[:space:]]*[=:][[:space:]]*[^<[:space:]]|(^|[^0-9.])100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]{1,3}\.[0-9]{1,3}|(^|[^0-9.])192\.168\.[0-9]{1,3}\.[0-9]{1,3}|[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z0-9.-]*[a-z]{2,}|[a-z2-7]{56}\.onion'
+# claro, chave de API (sk-ant- da Anthropic ou um *API_KEY= com valor), IP do
+# Tailscale (100.64.0.0/10) ou de rede local, e-mail e .onion.
+LEAK_PATTERNS='-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{20,}|sk-ant-[A-Za-z0-9_-]{20,}|API_KEY[[:space:]]*=[[:space:]]*[A-Za-z0-9]|(password|passwd|secret|token)[[:space:]]*[=:][[:space:]]*[^<[:space:]]|(^|[^0-9.])100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]{1,3}\.[0-9]{1,3}|(^|[^0-9.])192\.168\.[0-9]{1,3}\.[0-9]{1,3}|[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z0-9.-]*[a-z]{2,}|[a-z2-7]{56}\.onion'
 
 die() { echo "export.sh: $*" >&2; exit 1; }
 
@@ -88,8 +89,12 @@ redact_file() {
 }
 
 scan_for_leaks() {
-  local hits
-  hits=$(grep -rInE "$LEAK_PATTERNS" "$ROOT/home" "$ROOT/system" 2>/dev/null | cut -d: -f1,2 || true)
+  # O -e é obrigatório: o padrão começa com "-----BEGIN", que o grep lia como
+  # opção, saía com 2 e não achava nada (a busca nunca rodou até 18/11/2026).
+  local hits status=0
+  hits=$(grep -rInE -e "$LEAK_PATTERNS" "$ROOT/home" "$ROOT/system" 2>/dev/null) || status=$?
+  ((status > 1)) && die "a busca por segredos falhou (grep saiu com $status). NÃO commite assim."
+  hits=$(cut -d: -f1,2 <<<"$hits")
   [[ -z $hits ]] && return 0
   echo "export.sh: possível segredo ou dado pessoal (arquivo:linha). Ponha o valor no" >&2
   echo "private.env ou tire o arquivo do files.txt, e rode de novo. NÃO commite assim:" >&2
