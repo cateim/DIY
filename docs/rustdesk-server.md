@@ -298,9 +298,9 @@ clientes). Tudo com `sudo`: a pasta de um usuário não é legível por outro.
 ```bash
 U=hubb   # o usuário da linha "--server" do systemctl status
 
-# 1. Anota o ID e para o RustDesk (não remove ainda: se algo der errado, é só religá-lo)
+# 1. Anota o ID, para e desabilita o RustDesk (não remove ainda: se algo der errado, é só religá-lo)
 sudo -u $U rustdesk --get-id
-sudo systemctl stop rustdesk
+sudo systemctl disable --now rustdesk
 
 # 2. Instala o SelfDesk (o postinst já o inicia, com um ID e uma chave próprios)
 cd /tmp && curl -fsSLO https://github.com/self-labs/selfdesk/releases/latest/download/selfdesk-x86_64.deb
@@ -345,8 +345,12 @@ sudo apt remove -y rustdesk
 
 > [!NOTE]
 > **Nada disso mexe no SSH.** O acesso pelo Cloudflare Tunnel é independente do RustDesk, então, se a migração
-> falhar, `sudo systemctl stop SelfDesk && sudo systemctl start rustdesk` volta ao estado anterior. Faça um
-> cliente primeiro e só depois os demais.
+> falhar, `sudo systemctl disable --now SelfDesk && sudo systemctl enable --now rustdesk` volta ao estado
+> anterior. Faça um cliente primeiro e só depois os demais.
+
+> [!WARNING]
+> **Desabilite o RustDesk, não só pare.** Depois da cópia, os dois têm a mesma identidade (ID, chave e senha).
+> Parado mas habilitado, o RustDesk volta no próximo boot junto com o SelfDesk, e os dois disputam o ID e a tela.
 
 ## Troubleshooting
 
