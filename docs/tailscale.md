@@ -131,7 +131,7 @@ Os dados vivem em `/srv/portainer` (volume) — recriar o container não perde n
 ## Parte 7: (Opcional) Hardening da tailnet
 
 - **Node como servidor:** use `tag:server` (Parte 2) — não expira, não conta como device pessoal. Se criou sem tag, aplique em Machines → node → `⋯` → **Edit ACL tags** → `tag:server`, e **Disable key expiry**.
-- **ACL restritiva:** por padrão a tailnet é _allow-all_ entre os seus devices. Para limitar, edite as **Access controls**.
+- **ACL restritiva:** por padrão a tailnet é _allow-all_ entre os seus devices. Para limitar, edite as **Access controls**. Desde 19/11/2026 o `tag:server` (este node) recebe só a `443` de todos e a `9001` (agent do Portainer) só do Orange Pi; o policy file está no [guia do Portainer Agent](./portainer-agent.md#parte-6-vps-com-tailscale-em-container-userspace).
 - **Nunca ligue o Funnel** — ele exporia o serviço na internet pública. Este guia usa só `serve` (tailnet).
 
 ## Parte 8: Somar outro serviço ao hub (➕)
