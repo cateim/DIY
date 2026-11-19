@@ -26,6 +26,8 @@ A stack pronta está em [`assets/stacks/tailscale.yml`](../assets/stacks/tailsca
 
 O node (`selflabs`) faz `serve` HTTPS: a **porta 443** encaminha para o Portainer, e cada serviço novo entra numa **porta própria** (8443, 9443, …). Qualquer device seu abre `https://selflabs.<sua-tailnet>.ts.net[:porta]`.
 
+Além do HTTPS, a **porta 9001** é um repasse TCP puro (`TCPForward`) para o `portainer_agent:9001`, pela rede `portainer-agent-net`: é por ela que o Portainer do homelab gerencia esta VPS ([Portainer Agent, Parte 6](./portainer-agent.md#parte-6-vps-com-tailscale-em-container-userspace)).
+
 > ℹ️ **Como o container alcança o backend:** pela **rede docker**. O `tailscale` fica na `caddy-net`, e o alvo (ex.: `portainer`) também — então o proxy é só `http://<container>:porta`. Para expor um serviço de outra rede, adicione essa rede à stack `tailscale.yml`.
 
 ## Parte 1: Conta Tailscale + MagicDNS + HTTPS
@@ -53,13 +55,19 @@ Copie o valor (`tskey-auth-...`) → vai na aba **Environment variables** do Por
 
 ```bash
 sudo mkdir -p /srv/tailscale/{state,config}   # o container roda como root; sem chown
+sudo docker network create --driver bridge portainer-agent-net   # a stack a declara como external
 ```
 
-Grave o serve config em `/srv/tailscale/config/serve.json` (conteúdo de [`assets/configs/tailscale-serve.json`](../assets/configs/tailscale-serve.json)) — Portainer na 443:
+A `portainer-agent-net` é a rede do agent do Portainer ([Portainer Agent, Parte 6](./portainer-agent.md#parte-6-vps-com-tailscale-em-container-userspace)). Sem ela, o deploy da stack falha; se não for usar o agent, tire a rede do `tailscale.yml`.
+
+Grave o serve config em `/srv/tailscale/config/serve.json` (conteúdo de [`assets/configs/tailscale-serve.json`](../assets/configs/tailscale-serve.json)): Portainer na 443 e o agent do Portainer na 9001:
 
 ```json
 {
-  "TCP": { "443": { "HTTPS": true } },
+  "TCP": {
+    "443": { "HTTPS": true },
+    "9001": { "TCPForward": "portainer_agent:9001" }
+  },
   "Web": {
     "${TS_CERT_DOMAIN}:443": {
       "Handlers": { "/": { "Proxy": "http://portainer:9000" } }
@@ -133,7 +141,11 @@ O mesmo node serve vários serviços, um por **porta**. Ex.: adicionar um Grafan
 1. **serve.json** — adicione a porta (`8443`) e o backend:
    ```json
    {
-     "TCP": { "443": { "HTTPS": true }, "8443": { "HTTPS": true } },
+     "TCP": {
+       "443": { "HTTPS": true },
+       "8443": { "HTTPS": true },
+       "9001": { "TCPForward": "portainer_agent:9001" }
+     },
      "Web": {
        "${TS_CERT_DOMAIN}:443": {
          "Handlers": { "/": { "Proxy": "http://portainer:9000" } }
@@ -159,7 +171,7 @@ O mesmo node serve vários serviços, um por **porta**. Ex.: adicionar um Grafan
 | `https://selflabs…ts.net` não resolve no PC | MagicDNS off, ou Tailscale não roda no PC   | Ligue MagicDNS (Parte 1); confirme o Tailscale ativo (ícone na bandeja)                |
 | Erro de **certificado** ao abrir a URL      | HTTPS Certificates off na tailnet           | Ligue **HTTPS Certificates** (Parte 1) e redeploy o container                          |
 | `502`/página em branco                      | backend errado, ou alvo fora da `caddy-net` | Confira o `Proxy` (`http://<container>:porta`); garanta que o alvo está na `caddy-net` |
-| serve.json alterado não aplicou             | o container lê no boot                      | `docker restart tailscale`                                                             |
+| serve.json alterado não aplicou             | o container reaplica sozinho em segundos (log `serve proxy: applying serve config`); sem essa linha, ele não viu a mudança | `docker logs tailscale 2>&1 \| grep 'applying serve config'`; se não aparecer, `docker restart tailscale` |
 | Node não aparece em Machines                | `TS_AUTHKEY` inválida/expirada              | Gere nova auth key (Parte 2) e redeploy                                                |
 
 ## Notas Importantes
@@ -174,6 +186,7 @@ O mesmo node serve vários serviços, um por **porta**. Ex.: adicionar um Grafan
 | O quê                | Onde                                                           | Proteção               |
 | :------------------- | :------------------------------------------------------------- | :--------------------- |
 | Serviços via tailnet | `https://selflabs.<sua-tailnet>.ts.net[:porta]`                | tailnet (seus devices) |
+| Agent do Portainer   | `100.100.101.83:9001` (TCP, para o Portainer do homelab)       | tailnet (seus devices) |
 | Admin da tailnet     | [login.tailscale.com/admin](https://login.tailscale.com/admin) | conta Tailscale        |
 
 ## Referências

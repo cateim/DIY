@@ -8,6 +8,8 @@
 #
 # Serviços expostos: definidos no serve.json (../configs/tailscale-serve.json).
 # Hoje: 443 -> Portainer (portainer:9000, via caddy-net) — admin do Docker privado.
+#       9001 -> portainer_agent:9001 (TCP, via portainer-agent-net) - o Portainer
+#       do homelab gerencia a VPS por aqui (docs/portainer-agent.md).
 #
 # O container alcança os backends pela REDE docker: coloque-o na mesma rede do
 # alvo (caddy-net p/ os apps do repo) e no serve.json use Proxy http://<container>:porta.
@@ -43,6 +45,7 @@ services:
       - /srv/tailscale/config:/config         # contém o serve.json
     networks:
       - caddy-net                             # p/ expor apps da caddy-net (ex.: bentopdf:8080)
+      - portainer-agent-net                   # só o portainer_agent; 9001 -> Portainer do homelab
       # ➕ para expor um serviço que vive em OUTRA rede, adicione-a aqui:
       # - grafana-net
     logging:
@@ -55,6 +58,9 @@ networks:
   caddy-net:
     name: caddy-net
     external: true                            # criada pela stack caddy (docker network create caddy-net)
+  portainer-agent-net:
+    name: portainer-agent-net
+    external: true                            # docker network create portainer-agent-net (docs/portainer-agent.md)
   # ➕ declare aqui cada rede externa extra referenciada acima:
   # grafana-net:
   #   name: grafana-net
