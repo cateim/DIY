@@ -1,8 +1,8 @@
 # 🛰️ Portainer Agent (outra máquina no Portainer central)
 
-Liga uma máquina com Docker ao Portainer que já roda no homelab, sem instalar um segundo Portainer nela. Na máquina fica só o `portainer/agent`, um container sem estado: usuários, stacks, variáveis de ambiente e o clone dos repositórios continuam no servidor. Quem abre a conexão é o servidor, então console, exec e logs ao vivo funcionam, diferente do Edge Agent Async (o caso da VPS Oracle).
+Liga uma máquina com Docker ao Portainer que já roda no homelab, sem instalar um segundo Portainer nela. Na máquina fica só o `portainer/agent`, um container sem estado: usuários, stacks, variáveis de ambiente e o clone dos repositórios continuam no servidor. Quem abre a conexão é o servidor, então console, exec e logs ao vivo funcionam, diferente do Edge Agent Async, que só manda snapshot.
 
-Exemplo real deste guia: o notebook `alienware` (Omarchy) ligado ao `portainer.selflabs.org` (Portainer EE 2.45.3 do Orange Pi 5) pelo Tailscale, em 03/11/2026.
+Exemplo real deste guia: o notebook `alienware` (Omarchy) ligado ao `portainer.selflabs.org` (Portainer EE 2.45.3 do Orange Pi 5) pelo Tailscale, em 03/11/2026. A VPS Oracle, que até 19/11/2026 era um Edge Agent Async com o snapshot parado havia uns 59 dias, virou Agent também, por um caminho próprio, porque lá o Tailscale roda em container (Parte 6).
 
 **Pré-requisito:** Docker na máquina ([Parte 1 do guia do Portainer no Debian](./portainer-debian.md#parte-1-instalação-do-docker-engine); o Omarchy já vem com ele) e [Tailscale](./tailscale.md) nas duas pontas.
 
@@ -114,6 +114,70 @@ sudo docker pull portainer/agent:<versão do servidor>
 
 Depois rode o `docker run` da Parte 1 com a tag nova. A versão do servidor sai de `curl -sk https://localhost:9443/api/status`, rodado no servidor. As regras do firewall continuam valendo: elas são pela porta, não pelo container.
 
+Na VPS (Parte 6) é o mesmo procedimento, com o `docker run` da Parte 6: a tag nova, `--network portainer-agent-net` e nenhum `-p`. O `serve.json` aponta para o nome do container, então nada muda no `tailscale`.
+
+---
+
+## Parte 6: VPS com Tailscale em container (userspace)
+
+Caso real: a VPS Oracle (node `selflabs`, `100.100.101.83` no Tailscale) ligada ao Portainer do homelab em 19/11/2026. Lá o Tailscale é o container `tailscale` da [stack do guia do Tailscale](./tailscale.md), em modo userspace (`TS_USERSPACE=true`): o host não tem `tailscale0`, então a receita das Partes 1 e 2 não serve.
+
+- **Sem `-p 9001`.** Uma porta publicada não aparece no Tailscale (não existe `tailscale0` no host para recebê-la) e, publicada pelo Docker, passa por cima do `REJECT` do iptables do host e fica aberta para a internet.
+- **Sem `ss -ltn` e sem ufw.** Nada é publicado no host, então a conferência da Parte 1 e a Parte 2 inteira não se aplicam. O iptables do host fica como está.
+- **Quem leva a porta `9001` à tailnet é o `tailscale`**, com um `TCPForward` no `serve.json` para `portainer_agent:9001`, por uma rede só dos dois.
+
+> ⚠️ **Rede própria, não a `caddy-net`.** Na `caddy-net` vivem `radar-backend`, `alferes-app`, `bentopdf` e `cortendesk`, e todos alcançariam o agent, que é root no host (`/:/host`). Na `portainer-agent-net` ficam só o agent e o `tailscale`.
+
+Na VPS, com `sudo`, nesta ordem:
+
+1. **A rede** (a stack `tailscale` a declara como `external`, então ela vem antes):
+
+   ```bash
+   sudo docker network create --driver bridge portainer-agent-net
+   ```
+
+2. **O agent**, sem `-p`, na tag da versão do servidor (`curl -sk https://localhost:9443/api/status` no servidor):
+
+   ```bash
+   sudo docker run -d \
+     --name portainer_agent \
+     --restart=always \
+     --network portainer-agent-net \
+     -e TZ=America/Sao_Paulo \
+     -v /var/run/docker.sock:/var/run/docker.sock \
+     -v /var/lib/docker/volumes:/var/lib/docker/volumes \
+     -v /:/host \
+     portainer/agent:2.45.4
+   ```
+
+3. **O `tailscale` entra na `portainer-agent-net`.** Está em [`assets/stacks/tailscale.yml`](../assets/stacks/tailscale.yml), na lista `networks` do serviço e como rede externa; redeploy da stack pelo Portainer da VPS. Sem recriar o container, dá para ligar na hora com `sudo docker network connect portainer-agent-net tailscale`.
+
+4. **O `serve.json` ganha a porta `9001`** em `/srv/tailscale/config/serve.json` (espelho em [`assets/configs/tailscale-serve.json`](../assets/configs/tailscale-serve.json)), dentro de `"TCP"`:
+
+   ```json
+   "9001": { "TCPForward": "portainer_agent:9001" }
+   ```
+
+   Guarde uma cópia antes (`sudo cp serve.json serve.json.bak-AAAAMMDD`). O container aplica a mudança sozinho em segundos (log `serve proxy: applying serve config`), sem restart.
+
+Teste pelo servidor (Orange Pi 5):
+
+```bash
+curl -sk -o /dev/null -w '%{http_code}\n' https://100.100.101.83:9001/ping   # tem que responder 204
+```
+
+### Cadastrar no Portainer do homelab
+
+> ⚠️ **A licença EE do homelab aceita só 3 ambientes.** Um 4º responde HTTP 402 (`exceeded the node allowance`). Apague o ambiente antigo da máquina **antes** de cadastrar o novo.
+
+1. **Environments** → o ambiente Edge antigo (`oracle`) → **Remove**.
+2. Wizard da Parte 1 → **Docker Standalone** → **Agent**.
+3. **Name:** `oracle`. **Environment URL:** `100.100.101.83:9001`. **More settings:** grupo `Self-Labs`, tag `selflabs`.
+4. **Connect**. Em 19/11/2026 o ambiente novo listou os 37 containers e mostrou os logs do `caddy` ao vivo.
+5. Na VPS, pare e remova o container antigo do Edge Agent (`portainer_edge_agent`). O volume dele (`portainer_agent_data`) só tem a identidade do Edge e não serve ao agent novo: apague com `sudo docker volume rm portainer_agent_data` (feito em 19/11/2026).
+
+> ℹ️ **As stacks continuam no Portainer da VPS.** O Portainer próprio da VPS (container `portainer`, alcançado pela tailnet e pelo Caddy) segue dono das stacks com GitOps (`authelia`, `caddy`, `tailscale`, `radar`...). No homelab elas aparecem como externas, com acesso limitado: ver, console e logs por ali; editar e redeploy só no Portainer da VPS, nunca pelo homelab. Dois donos de GitOps na mesma stack brigam entre si.
+
 ---
 
 ## Troubleshooting
@@ -125,6 +189,8 @@ Depois rode o `docker run` da Parte 1 com a tag nova. A versão do servidor sai 
 | Abre de qualquer rede privada                                       | Falta o `deny` da Parte 2                                                                 | Regra `deny` da Parte 2                                                                                                                                                                                                   |
 | Ambiente offline fora de casa                                       | A rede bloqueia o Tailscale (o Squid do trabalho bloqueia), ou a máquina está dormindo   | Esperado: os containers continuam rodando, e o Portainer volta a alcançar a máquina quando o Tailscale reconecta                                                                                                         |
 | Recursos falhando depois de atualizar o servidor                    | Agent numa versão diferente da do servidor                                                | Parte 5                                                                                                                                                                                                                   |
+| HTTP 402 `exceeded the node allowance` ao cadastrar                 | A licença EE do homelab já tem os 3 ambientes que aceita                                  | Apague o ambiente antigo da máquina antes de cadastrar o novo (Parte 6)                                                                                                                                                   |
+| `/ping` da VPS não responde (`100.100.101.83:9001` fechada)         | Falta o `TCPForward` da `9001` no `serve.json`, ou o `tailscale` fora da `portainer-agent-net` | Confira `/srv/tailscale/config/serve.json` e `sudo docker network inspect portainer-agent-net` (os dois containers na lista); `sudo docker restart tailscale` se o log não mostrar `applying serve config` |
 
 ---
 
@@ -143,6 +209,8 @@ Depois rode o `docker run` da Parte 1 com a tag nova. A versão do servidor sai 
 | **Painel**                      | `https://portainer.selflabs.org`                  |
 | **Ambiente**                    | `alienware` (grupo `Self-Labs`, tag `selflabs`)   |
 | **Agent**                       | `100.84.113.90:9001` (Tailscale do notebook)      |
+| **Ambiente da VPS**             | `oracle` (grupo `Self-Labs`, tag `selflabs`)      |
+| **Agent da VPS**                | `100.100.101.83:9001` (serve TCP do container `tailscale`) |
 | **Origem liberada no firewall** | `100.121.247.120` (Tailscale do Orange Pi 5)      |
 | **Regras do firewall**          | `/etc/ufw/user.rules` (linhas com `9001`)         |
 | **Dados das stacks**            | `/srv/<projeto>` na máquina                       |
