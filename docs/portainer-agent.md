@@ -166,6 +166,24 @@ Teste pelo servidor (Orange Pi 5):
 curl -sk -o /dev/null -w '%{http_code}\n' https://100.100.101.83:9001/ping   # tem que responder 204
 ```
 
+5. **Só o servidor alcança a `9001`: a regra fica no ACL do Tailscale.** Sem ufw na frente, o `serve` abre a porta para qualquer aparelho que o ACL deixe chegar ao `selflabs`, e o padrão _allow-all_ deixa todos. No policy file (Access controls), troque o grant `*` → `*` por estes:
+
+   ```hujson
+   "hosts": {"orangepi5": "100.121.247.120", "alienware": "100.84.113.90"},
+   "grants": [
+     {"src": ["autogroup:member"], "dst": ["autogroup:member"], "ip": ["*"]},
+     {"src": ["autogroup:member"], "dst": ["192.168.68.0/24"], "ip": ["*"]},
+     {"src": ["autogroup:member"], "dst": ["tag:server"], "ip": ["tcp:443"]},
+     {"src": ["orangepi5"], "dst": ["tag:server"], "ip": ["tcp:9001"]},
+   ],
+   "tests": [
+     {"src": "orangepi5", "accept": ["tag:server:9001", "tag:server:443"]},
+     {"src": "alienware", "accept": ["tag:server:443"], "deny": ["tag:server:9001"]},
+   ],
+   ```
+
+   O ACL só tem _allow_, por isso o `*` sai e entram regras explícitas: os aparelhos pessoais seguem livres entre si, todos abrem o Portainer da VPS na `443`, e a `9001` aceita só o Orange Pi. Os `tests` impedem salvar uma versão que reabra a porta. Conferido em 19/11/2026: do notebook a `9001` fecha e a `443` abre; do Orange Pi o `/ping` dá 204. Com isso o `AGENT_SECRET` não é necessário: quem alcança o agent é o mesmo Orange Pi que já roda o Portainer.
+
 ### Cadastrar no Portainer do homelab
 
 > ⚠️ **A licença EE do homelab aceita só 3 ambientes.** Um 4º responde HTTP 402 (`exceeded the node allowance`). Apague o ambiente antigo da máquina **antes** de cadastrar o novo.
