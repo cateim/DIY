@@ -12,6 +12,27 @@
                 <key>ServerURL</key>
                 <string>https://adguard.selflabs.org/dns-query</string>
             </dict>
+            <!-- Em casa o DHCP do Deco entrega o AdGuard e, de reserva, o AdGuard DNS
+                 publico (94.140.14.14), os dois com filtro: ai o perfil sai do caminho e
+                 o iPhone usa o DNS da rede. Com qualquer outro DNS na lista (um sem
+                 filtro, o IPv6 do provedor) a regra nao casa e o DoH continua. O IP de
+                 casa entra no deploy pela variavel ADGUARD_LAN_IP. -->
+            <key>OnDemandRules</key>
+            <array>
+                <dict>
+                    <key>Action</key>
+                    <string>Disconnect</string>
+                    <key>DNSServerAddressMatch</key>
+                    <array>
+                        <string>__ADGUARD_LAN_IP__</string>
+                        <string>94.140.14.14</string>
+                    </array>
+                </dict>
+                <dict>
+                    <key>Action</key>
+                    <string>Connect</string>
+                </dict>
+            </array>
             <key>PayloadDescription</key>
             <string>Configura DNS-over-HTTPS via AdGuard Home — Self-Labs</string>
             <key>PayloadDisplayName</key>
