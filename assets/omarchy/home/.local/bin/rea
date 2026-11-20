@@ -1,0 +1,23 @@
+#!/bin/sh
+# REA (rea-agents) from its own npm prefix, run by the mise "latest" Node.
+# Why: a global npm install lives inside one Node version (installs/node/<x.y.z>), so a
+# Node update left the MCP pointing at an old version that mise prune can delete.
+# The prefix is version-free and `rea update` updates it in place; the native modules
+# (frida, node-pty) are N-API, so any Node >= 26.12.1 (engines of rea-agents) runs them.
+# Never print to stdout here: the MCP server speaks JSON-RPC on it.
+# Setup and update: DIY docs/rea.md, Partes 1 e 7.
+node="$HOME/.local/share/mise/installs/node/latest/bin/node"
+entry="$HOME/.local/share/rea/npm/lib/node_modules/rea-agents/scripts/rea.mjs"
+if [ ! -x "$node" ]; then
+    echo "rea: Node not found at $node (mise node missing?)" >&2
+    exit 1
+fi
+if [ ! -f "$entry" ]; then
+    echo "rea: rea-agents not found at $entry (npm install -g --prefix ~/.local/share/rea/npm rea-agents)" >&2
+    exit 1
+fi
+# npm and the update check must see the same prefix and Node as this script.
+PATH="$HOME/.local/share/rea/npm/bin:$(dirname "$node"):$PATH"
+NPM_CONFIG_PREFIX="$HOME/.local/share/rea/npm"
+export PATH NPM_CONFIG_PREFIX
+exec "$node" "$entry" "$@"
