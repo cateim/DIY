@@ -177,6 +177,26 @@ curl -s "http://localhost:8084/dns-query"
 Se retornar `Bad Request`, parabéns! 🎉 O DoH está funcionando.
 O fato do AdGuard Home responder `Bad Request` prova que o endpoint está ativo e pronto para receber o tráfego da Cloudflare!
 
+### 4.6. Cache otimista e o ruído do RustDesk
+
+Dois ajustes no mesmo `AdGuardHome.yaml`, aplicados em 20/11/2026:
+
+```yaml
+dns:
+  cache_optimistic: true          # responde do cache vencido (TTL 30 s) e atualiza por trás
+querylog:
+  ignored:
+    - rustdesk.selflabs.org
+  ignored_enabled: true
+statistics:
+  ignored:
+    - rustdesk.selflabs.org
+  ignored_enabled: true
+```
+
+- **Cache otimista:** uma resposta vencida sai na hora (até 12 h depois de vencer), e o AdGuard busca a nova no upstream em paralelo. Corta a espera do upstream nas consultas repetidas.
+- **`rustdesk.selflabs.org` fora do Query Log e das estatísticas:** o SelfDesk do próprio homelab (`SelfDesk.service`) consulta o API Server a cada ~17 s, A e AAAA, de 5 mil a 10 mil consultas por dia que chegam como `172.18.0.0` (o host, pela rede do container). É o funcionamento normal do cliente, sem ajuste de intervalo; a consulta continua resolvida, só deixa de encher o log.
+
 ---
 
 ## 🌐 Parte 5: Configurar o Cloudflare Tunnel
@@ -204,10 +224,22 @@ Para que TODOS os dispositivos da rede usem o AdGuard automaticamente:
 2. Ir em **Mais** > **Avançado** > **LAN** (ou **IPv4**)
 3. Em **DNS Address**, mudar de Automático para Manual
 4. **DNS Primário:** IP da Orange Pi (ex: `192.168.x.x`)
-5. **DNS Secundário:** `1.1.1.1` _(fallback caso a Orange Pi caia)_
+5. **DNS Secundário:** `94.140.14.14` (AdGuard DNS público, que também bloqueia anúncios e rastreadores)
 6. Salvar e aguardar
 
 Os dispositivos passam a usar o AdGuard ao renovarem o DHCP (pode forçar desconectando e reconectando ao Wi-Fi).
+
+> ⚠️ **O secundário tem de filtrar também.** Até 20/11/2026 ele era `1.1.1.1`, e o aparelho
+> não usa o secundário só quando o primário cai: Android e Windows mandam consultas para os
+> dois, e o que ia para o `1.1.1.1` passava sem filtro. Sem secundário, a casa fica sem
+> internet sempre que a Orange Pi ou o container caem (reboot, falta de memória, atualização
+> da imagem). O AdGuard DNS público (`94.140.14.14`) resolve os dois lados: segura a casa
+> quando a Orange Pi cai e bloqueia anúncios com a lista dele. O que vai para ele não passa
+> pelas suas regras próprias nem aparece no Query Log. O perfil do iOS (Parte 7.1) só sai do
+> caminho em casa quando os DNS da rede são esses dois; se trocar o secundário, mude também
+> o `DNSServerAddressMatch` do perfil. Se o Deco também anunciar um DNS IPv6 do provedor,
+> ele vaza: com o IPv6 do Deco ligado, confira em **Avançado** > **IPv6** que o DNS não é o
+> do provedor.
 
 ---
 
@@ -226,7 +258,7 @@ Nossa arquitetura terceiriza o TLS para a Cloudflare. Por causa disso, a interfa
 3. Vá em **Ajustes** (Settings) > vai aparecer um aviso "Perfil Baixado" no topo > toque nele e instale.
 4. Vá em **Ajustes** > **Geral** > **VPN e Gerenciamento de Dispositivo** > **DNS** e selecione o perfil do AdGuard.
 
-> **Nota sobre redes locais:** Com o perfil ativo, o iPhone usará sempre o DoH externo (`adguard.exemplo.com`), mesmo dentro de casa. O AdGuard vai filtrar normalmente — não é um problema, só uma curiosidade.
+> **Nota sobre redes locais:** O perfil tem uma regra (`OnDemandRules`, `DNSServerAddressMatch`): quando os DNS da rede são só o AdGuard de casa e o AdGuard DNS público da Parte 6 (os dois filtram), o iPhone deixa o DoH e usa o DNS da rede, que já é filtrado. Em qualquer outra rede (4G, Wi-Fi de fora, ou a de casa com outro DNS junto) o DoH continua. Até 20/11/2026 o perfil não tinha essa regra e usava o DoH também em casa; com todos os aparelhos saindo pelo mesmo IP, isso estourava o limite da Parte 8.3. O IP do AdGuard não fica no repositório: o deploy lê a variável `ADGUARD_LAN_IP` (GitHub > **Settings** > **Secrets and variables** > **Actions** > aba **Variables**, no environment `github-pages` ou como variável do repositório) e para com erro se ela faltar. Mudar o perfil só chega ao iPhone quando ele é **instalado de novo** pela página.
 
 > **Nota sobre assinatura:** O perfil é assinado automaticamente pelo GitHub Actions com um certificado self-signed na hora do deploy. O iOS vai exibir "Assinado por Self-Labs DNS Profile" (emissor não verificado pela Apple — esperado para certificados self-signed). Para regenerar o certificado de assinatura, veja a seção [Gerando o Certificado de Assinatura](#gerando-o-certificado-de-assinatura).
 
@@ -334,8 +366,16 @@ Como o Cloudflare não permite mais usar `Path` dentro das regras de acesso, pre
 ### 8.3. Limite de requisições no `/dns-query`
 
 O `/dns-query` é público, então a zona limita quantas consultas um mesmo endereço faz:
-**Security** > **WAF** > **Rate limiting rules**, mesmo IP e data center, 50 requisições em
+**Security** > **WAF** > **Rate limiting rules**, mesmo IP e data center, 400 requisições em
 10 segundos, depois **Block** por 10 segundos.
+
+> ⚠️ **Não volte para 50.** Até 20/11/2026 o limite era 50, e ele cortava os próprios
+> celulares: o perfil do iOS usa DoH até dentro de casa, então desde 17/11 todos os aparelhos
+> da casa saem pelo mesmo IP, e o DoH foi de ~500 para ~25 mil consultas por dia. Em 24 h a
+> Cloudflare bloqueou pelo menos 1.000 requisições (a consulta devolve no máximo 1.000),
+> 23 delas do Intra no Android. Cada bloqueio deixa o aparelho 10 s sem DNS, o que no Android
+> parece "o AdGuard não funciona direito". Os bloqueios aparecem em **Security** > **Events**,
+> filtrando o host `adguard.selflabs.org` e a origem **Rate limiting rules**.
 
 > ⚠️ O plano Free da Cloudflare tem **uma** regra de rate limiting por zona. Na zona
 > `selflabs.org` ela é dividida com os sinais do painel de monitoramento da Hubb
@@ -346,7 +386,8 @@ O `/dns-query` é público, então a zona limita quantas consultas um mesmo ende
 > ```
 >
 > Ao editar a regra por causa do AdGuard, mantenha a segunda metade. O contador é por
-> endereço e vale para as duas metades juntas.
+> endereço e vale para as duas metades juntas, então o limite de 400 também vale para os
+> sinais do monitor.
 
 ---
 
