@@ -115,7 +115,7 @@ rea capabilities                           # o que cada motor faz e os efeitos d
 
 Dentro de uma sessão do agente, peça para ele chamar `binary_session`: o campo `tool_availability` diz o que o servidor em execução consegue usar, com o motivo e a correção de cada ausência.
 
-Estado em 06/11/2026: Node 26.13.0 e `procps-ng` ok, registro e skill ok, Ghidra 12.1.2 com JDK 21 ok (`rea doctor --provider ghidra --json` passa nas 8 checagens) e todos os motores livres da [Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir) configurados, Kuna incluído. O `binary_session` ainda lista como ausentes: JEB, IDA e Hopper (pagos) e as ferramentas que só existem no macOS. A extração de firmware passou a funcionar no mesmo dia, com o Unblob (Parte 6).
+Estado em 06/11/2026: Node 26.13.0 e `procps-ng` ok, registro e skill ok, Ghidra 12.1.2 com JDK 21 ok (`rea doctor --provider ghidra --json` passa nas 8 checagens) e todos os motores livres da [Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir) configurados, Kuna incluído. O `binary_session` ainda lista como ausentes: JEB, IDA e Hopper (pagos) e as ferramentas que só existem no macOS. A extração de firmware passou a funcionar no mesmo dia, com o Unblob (Parte 6). Em 20/11/2026 entraram as ferramentas avulsas da Parte 6 (radare2, Cutter, JADX, Binary Ninja Free, IDA Free, Frida e `ilspycmd`); a ponte do REA no Cutter ainda não foi conferida.
 
 ---
 
@@ -444,9 +444,34 @@ claude mcp add-json -s user rea '{
 **Conferido em 06/11/2026**, depois do reinício: o `binary_session` lista Ghidra e Kuna como `available`, e o `inspect_packet_capture` leu um pcap de DNS da TV pelo `tshark` apontado na variável. Com o Unblob, num segundo reinício, o `extract_firmware` passou a `available` e extraiu um arquivo de teste com um zip e um gzip colados: 2 chunks, cobertura `complete`, nenhum `extraction_gaps`. Continuam fora:
 
 - `sasquatch-v4be`, o extrator de SquashFS 4 big-endian do Unblob (raro, alguns roteadores): o `sasquatch` do AUR compila só o `sasquatch`.
-- JEB, IDA e Hopper, que são pagos.
-- Cutter (o plugin do REA para ele é experimental e vai à mão na pasta de plugins) e pwndbg (o REA exige o caminho de um venv do pwndbg).
+- JEB, IDA Pro e Hopper, que são pagos. O IDA Free entrou em 20/11/2026, mas não pluga no REA (bloco abaixo).
+- pwndbg (o REA exige o caminho de um venv do pwndbg). O Cutter entrou em 20/11/2026, com o plugin do REA ligado à mão (bloco abaixo).
 - O que só existe no macOS: `inspect_macho`, plist, Swift, asset catalog, assinatura de código e UI nativa.
+
+**Ferramentas avulsas, instaladas em 20/11/2026.** Servem para olhar o alvo por conta própria, ao lado do REA; só o Cutter tem uma ponte para ele, e o Frida divide com ele o mesmo `frida-server` no Android. Os pacotes estão no espelho ([`packages.txt`](../assets/omarchy/packages.txt), seção de engenharia reversa, e [`packages-aur.txt`](../assets/omarchy/packages-aur.txt)):
+
+| Ferramenta                 | Instalar                                                   | Observação                                                                                                                                                         |
+| :------------------------- | :--------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| radare2 6.2.2 e r2ghidra   | `sudo pacman -S radare2 r2ghidra`                          | CLI `r2`; o `pdg` decompila com o decompilador do Ghidra                                                                                                            |
+| Cutter 2.4.1 e rz-ghidra   | `sudo pacman -S rz-cutter rz-ghidra`                       | GUI do rizin, binário `cutter`. O pacote `cutter` do extra é outra coisa (corta conexões TCP): nunca instale                                                        |
+| JADX 1.5.6                 | `sudo pacman -S jadx`                                      | GUI e CLI de APK e dex; o REA continua no JAR do `jadx-headless-mcp` (tabela acima)                                                                                 |
+| Binary Ninja Free 6.0.10905 | `yay -S binaryninja-free`                                 | Só GUI, sem API nem headless; licença não comercial. O PKGBUILD baixa o release oficial da Vector35 no GitHub, com sha256                                           |
+| IDA Free 8.4.240527        | `yay -S ida-free`                                          | Só x86/x64; licença não comercial. O PKGBUILD baixa o instalador oficial guardado no web.archive.org, com sha256 fixo, e o pacote está marcado desatualizado no AUR. O IDA Free 9.x pede login e arquivo de licença da Hex-Rays |
+| Frida 17.23.2              | `uv tool install frida-tools --with 'frida==17.23.2'`      | A mesma versão do Frida que vem dentro do REA 6.8.0, então um único `frida-server` no Android atende os dois. Pelo uv, nunca `pip install` global                   |
+| ILSpy CLI 11.2.0.10050     | `dotnet tool install -g ilspycmd`                          | Decompilador .NET, em `~/.dotnet/tools` (no PATH pelo `~/.config/uwsm/env.d/91-dotnet-tools`, depois de um novo login). O `ilspy-bin` do AUR ficou de fora: depende do `dotnet-runtime-10.0`, que o `dotnet-sdk` e o `dotnet-runtime` instalados não fornecem |
+
+Ghidra 12.1.2, rizin 0.8.2 e gdb 18.1 já estavam instalados. Não dá para instalar aqui: x64dbg e WinDbg (só Windows; no Linux o gdb 18.1 cobre), IDA Pro e o Binary Ninja pago.
+
+O IDA Free não pluga no REA: o provedor IDA pede o `REA_IDA_MCP_CONFIG`, a config de uma ponte MCP do IDA, que não existe aqui.
+
+**Ponte do REA no Cutter.** O plugin vem dentro do pacote do REA e entra por um link simbólico, para a versão do plugin ser sempre a do servidor do REA:
+
+```bash
+mkdir -p ~/.local/share/rizin/cutter/plugins/python
+ln -sfn ~/.local/share/mise/installs/node/26.13.0/lib/node_modules/rea-agents/bridge/cutter/rea_bridge.py ~/.local/share/rizin/cutter/plugins/python/rea_bridge.py
+```
+
+O link quebra se essa instalação do Node sair. Depois de atualizar o REA para outro Node (Parte 7), refaça o `ln -sfn` com o caminho novo. A pasta da ponte, `~/.cache/rea/cutter-bridge`, é criada em execução. O link não entra no `files.txt`. Estado em 20/11/2026: o Cutter importa o plugin (o `.pyc` foi compilado), mas a ponte **não foi conferida de ponta a ponta**: o Cutter sem interface nunca chegou ao `setupInterface`. Falta abrir um binário no Cutter com interface e chamar `list_cutter_sessions` no REA.
 
 > ℹ️ **Por que `jdk21-openjdk` junto do Ghidra:** o pacote do Arch pede um JDK (`java-environment>=21`) e o pacman pergunta qual instalar. O REA aceita JDK 21 ou mais novo com o Ghidra 12.1 e foi verificado com o 21, então fica o 21 para não haver pergunta.
 

@@ -352,6 +352,28 @@ sudo apt remove -y rustdesk
 > **Desabilite o RustDesk, não só pare.** Depois da cópia, os dois têm a mesma identidade (ID, chave e senha).
 > Parado mas habilitado, o RustDesk volta no próximo boot junto com o SelfDesk, e os dois disputam o ID e a tela.
 
+### 9.5. Atualizar o SelfDesk
+
+Uma versão nova do RustDesk vira SelfDesk sozinha: o workflow diário do `self-labs/selfdesk` lê a versão padrão
+do rdgen e, se ainda não há Release `v<versão>`, compila com o mesmo `selfdesk.json` e publica. Para refazer uma
+Release já publicada (depois de mudar o JSON ou as imagens): **Actions** → **build** → **Run workflow**, com
+`force` marcado. O ID não muda numa atualização: a identidade fica no `SelfDesk.toml` de cada máquina, que o
+pacote não toca.
+
+Depois da Release, cada máquina instala por cima:
+
+- **Debian/Ubuntu (clientes):** `sudo bash ~/migrate-selfdesk.sh --update`, do repositório dos servidores dos
+  clientes. Ele confere o sha256 com o `SHA256SUMS`, instala com `dpkg -i` e confere que o ID continuou o mesmo.
+- **Arch:** `sudo pacman -U https://github.com/self-labs/selfdesk/releases/latest/download/selfdesk-x86_64.pkg.tar.zst`.
+- **CortenDesk:** o `/downloads` guarda cópias próprias dos instaladores, então suba os arquivos novos lá também.
+
+> [!NOTE]
+> **No Linux o binário é `/usr/share/SelfDesk/selfdesk`, em minúsculas** (desde 20/11/2026), e `SelfDesk` é um
+> link para ele. O RustDesk acha os próprios processos procurando `<nome do app em minúsculas> --server` no `ps`;
+> com o binário `SelfDesk` nada casava, e no Wayland do Hyprland toda conexão falhava com "The desktop portal on
+> the remote device is missing a capability". Por isso o log é `selfdesk_rCURRENT.log`, e um `pgrep` precisa
+> procurar `selfdesk --server`.
+
 ## Troubleshooting
 
 | Sintoma                                                                                                                      | Causa provável                                                                                                    | Correção                                                                                                                            |

@@ -7,10 +7,12 @@ android-apktool-bin           # apktool do REA: recursos de APK (docs/rea.md, Pa
 antigravity-ide               # IDE principal
 anydesk-bin                   # instalado, mas não recebe conexão no Wayland
 autosubsync-bin
+binaryninja-free              # 6.0.10905, só GUI, sem API nem headless; licença não comercial (docs/rea.md, Parte 6)
 blesh-git                     # sugestões e cores no bash (carregado no ~/.bashrc)
 chrome-remote-desktop
 csharp-ls                     # LSP do plugin csharp-lsp do Claude Code; compila com o dotnet-sdk da packages.txt
 hunspell-pt-br                # corretor em português
+ida-free                      # 8.4.240527, só x86/x64; licença não comercial, não pluga no REA (docs/rea.md, Parte 6)
 jdtls                         # LSP do plugin jdtls-lsp; a 1.63 pede Java 25 (wrapper /usr/local/bin/jdtls)
 lziprecover                   # extrator do Unblob (REA); pede gpg --recv-keys 1E5AEE0B18C0DEB45D64AA0325B62C9821501AA0
 nodejs-intelephense           # LSP do plugin php-lsp do Claude Code

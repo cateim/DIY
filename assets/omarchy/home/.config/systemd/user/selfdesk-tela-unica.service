@@ -1,10 +1,10 @@
 [Unit]
-Description=RustDesk: desliga o LG durante a sessão remota (mouse certo no cliente web)
+Description=SelfDesk: desliga as telas além da do notebook durante a sessão remota (mouse certo no cliente web)
 PartOf=graphical-session.target
 After=graphical-session.target
 
 [Service]
-ExecStart=%h/.local/bin/rustdesk-tela-unica
+ExecStart=%h/.local/bin/selfdesk-tela-unica
 Restart=on-failure
 RestartSec=3
 

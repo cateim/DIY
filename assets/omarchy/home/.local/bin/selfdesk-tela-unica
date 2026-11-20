@@ -1,63 +1,67 @@
 #!/usr/bin/env bash
-# Desliga o LG enquanto houver sessão do RustDesk e religa quando a última fecha.
+# Desliga todas as telas além da do notebook (eDP-1) enquanto houver sessão do SelfDesk e religa
+# quando a última fecha. Vale para qualquer tela ligada na hora, não só o LG: em 20/11/2026 a
+# portátil (DP-1) ficou ligada numa sessão sem o LG, porque o serviço só procurava o LG.
+# SelfDesk é o RustDesk da Self-Labs (self-labs/selfdesk): o código citado abaixo é o do RustDesk.
 # Por quê: com duas telas no Wayland, o servidor do RustDesk 1.5.1 passa a esperar o mouse em
 # coordenada lógica (escala 1,25 do notebook; display_service.rs, update_sync_displays), e o
 # cliente web manda a coordenada física: o cursor erra cada vez mais para o canto de baixo à
 # direita. Com uma tela só, o servidor volta a aceitar a física e todo cliente acerta.
-# O LG tem que sumir ANTES de a sessão começar. No início, o servidor guarda o arranjo de telas
+# As outras telas têm que sumir ANTES de a sessão começar. No início, o servidor guarda o arranjo de telas
 # (wayland.rs, set_wayland_layout_baseline) e, se o arranjo muda depois, converte cada posição
 # do mouse do arranjo guardado para o atual (display.rs, remap_to_live_layout). Como ele também
 # manda a lista nova de telas ao cliente, a conversão sai dobrada (x1,25) até a captura
 # reiniciar ("Refresh video" no CortenDesk). Por isso o desligar vem do log do servidor, no
 # pedido de conexão ("create_relay requested", uns 400 ms antes de o arranjo ser guardado), e
-# não só do processo "rustdesk --cm", que nasce tarde demais para isso.
-# Fim de sessão: o "rustdesk --cm" sai com a última conexão.
+# não só do processo "selfdesk --cm", que nasce tarde demais para isso.
+# Fim de sessão: o "selfdesk --cm" sai com a última conexão.
 # Para religar usa "hyprctl reload", que relê o monitors.lua (o arranjo fica num lugar só).
-# Avisa por notificação quando desliga o LG, com o IP da conexão: em 05/11/2026 o CortenDesk
+# Avisa por notificação quando desliga as telas, com o IP da conexão: em 05/11/2026 o CortenDesk
 # reconectou sozinho e deixou uma sessão aberta por 46 min sem ninguém saber por que o LG não
-# voltava. Se o LG for ligado à mão durante a sessão (painel Display), o serviço deixa ele ligado
+# voltava. Se uma tela for ligada à mão durante a sessão (painel Display), o serviço deixa ligada
 # até a sessão fechar, porque quem está na frente do notebook vale mais que o mouse remoto. Isso
 # só vale CARENCIA_S depois do primeiro desligar: no começo da sessão o LG às vezes religa
 # sozinho (09:12 e 16:22 de 05/11/2026, causa ainda desconhecida), e aí o serviço insiste.
-# Com alguém no VNC, o fim da sessão não religa o LG (o VNC só mostra o notebook): fica a marca
+# Com alguém no VNC, o fim da sessão não religa as telas (o VNC só mostra o notebook): fica a marca
 # MARCA_RELIGAR, e o vnc-sessao religa quando o último cliente do VNC sair.
-# Roda como serviço: ~/.config/systemd/user/rustdesk-tela-unica.service.
+# Roda como serviço: ~/.config/systemd/user/selfdesk-tela-unica.service.
 set -uo pipefail
 
-readonly LG_DESC='LG Electronics LG ULTRAWIDE 0x0003B53D'
-readonly CM_CMDLINE='/usr/lib/rustdesk/rustdesk --cm'
-# Processos do serviço do RustDesk (o do sistema, rustdesk.service): o --server e o --cm que ele
+# A tela que fica ligada. Com ela desligada (tampa fechada), o serviço não mexe em nada.
+readonly TELA_NOTEBOOK=eDP-1
+readonly CM_CMDLINE='/usr/share/SelfDesk/selfdesk --cm'
+# Processos do serviço do SelfDesk (o do sistema, SelfDesk.service): o --server e o --cm que ele
 # abre ficam nesse cgroup, uns 5 processos. Procurar o --cm só ali custa menos de 1 ms; o
 # "pgrep -xf" varria os ~550 processos do notebook em uns 100 ms, a cada 2 s, e era quase todo o
 # gasto do serviço, uns 5% de um núcleo parado (medido em 06/11/2026). Sem esse arquivo (serviço
 # parado ou cgroup em outro lugar), volta ao pgrep.
-readonly PROCS_RUSTDESK=/sys/fs/cgroup/system.slice/rustdesk.service/cgroup.procs
+readonly PROCS_SELFDESK=/sys/fs/cgroup/system.slice/SelfDesk.service/cgroup.procs
 # O padrão do pgrep não pode conter o CM_CMDLINE: o --service do RustDesk procura esse texto na
 # linha de comando de qualquer processo, duas vezes por segundo (get_cm, linux.rs:1312, 1.5.1),
 # e quando o processo some ele reinicia o --server, "sessão fechada" (linux.rs:1076). Com o
 # CM_CMDLINE inteiro, o pgrep deste serviço parecia uma sessão: o --server reiniciou de 20 a 46
 # vezes por hora, de 04/11/2026 23:26 a 06/11/2026 12:34. O [k] casa com o mesmo k.
-readonly CM_PGREP='/usr/lib/rustdesk/rustdes[k] --cm'
-readonly LOG_RUSTDESK="$HOME/.local/share/logs/RustDesk/server/rustdesk_rCURRENT.log"
+readonly CM_PGREP='/usr/share/SelfDesk/selfdes[k] --cm'
+readonly LOG_SELFDESK="$HOME/.local/share/logs/SelfDesk/server/selfdesk_rCURRENT.log"
 readonly INTERVALO_S=2
 # Pedido de conexão que não virou sessão (senha errada, desistência): religa depois disso.
 readonly ESPERA_SESSAO_S=90
-# Até aqui, contado do primeiro desligar, um LG ligado é o religar sozinho do começo da sessão.
+# Até aqui, contado do primeiro desligar, uma tela ligada é o religar sozinho do começo da sessão.
 readonly CARENCIA_S=20
 # Mesmo caminho no vnc-sessao.
-readonly MARCA_RELIGAR="${XDG_RUNTIME_DIR:-/run/user/$UID}/lg-religar-depois-do-vnc"
+readonly MARCA_RELIGAR="${XDG_RUNTIME_DIR:-/run/user/$UID}/telas-religar-depois-do-vnc"
 
 houve_sessao=false
-pedido_em=''      # $SECONDS do pedido que desligou o LG, enquanto a sessão não aparece
+pedido_em=''      # $SECONDS do pedido que desligou as telas, enquanto a sessão não aparece
 ultima_checagem=0
 # Ciclo: do primeiro pedido até a última sessão fechar (ou o pedido expirar).
 desligou_em=''    # $SECONDS do primeiro desligar do ciclo
-cedeu=false       # o LG foi ligado à mão neste ciclo
+cedeu=false       # uma tela foi ligada à mão neste ciclo
 origem=''         # IP da conexão, lido do log
 
 sessao_aberta() {
   local pid args
-  if [[ ! -r $PROCS_RUSTDESK ]]; then
+  if [[ ! -r $PROCS_SELFDESK ]]; then
     pgrep -xf "$CM_PGREP" >/dev/null
     return
   fi
@@ -65,25 +69,41 @@ sessao_aberta() {
     # Um processo que acabou de sair some do /proc antes do cgroup.procs: ignora.
     mapfile -d '' -t args 2>/dev/null <"/proc/$pid/cmdline" || continue
     [[ "${args[*]}" == "$CM_CMDLINE" ]] && return 0
-  done <"$PROCS_RUSTDESK"
+  done <"$PROCS_SELFDESK"
   return 1
 }
 
-lg_ligado() {
-  hyprctl monitors -j | jq -e --arg d "$LG_DESC" 'any(.[]; .description == $d)' >/dev/null
+# Telas ligadas além do notebook, uma por linha, já no formato do output do hl.monitor: pela
+# descrição, como as regras do monitors.lua (uma regra pelo nome da porta não vence a da
+# descrição), ou pelo nome se a descrição faltar ou tiver aspas. Vazio se o notebook não estiver
+# ligado: desligar as outras deixaria tudo apagado.
+telas_extras() {
+  hyprctl monitors -j | jq -r --arg n "$TELA_NOTEBOOK" '
+    select(any(.[]; .name == $n)) | .[] | select(.name != $n)
+    | if (.description // "") != "" and (.description | test("[\"\\\\]") | not)
+      then "desc:" + .description else .name end'
+}
+
+extra_ligada() {
+  [[ -n $(telas_extras) ]]
 }
 
 avisar() {  # $1: título, $2: texto
-  notify-send -a RustDesk -i rustdesk "$1" "$2" 2>/dev/null || true
+  notify-send -a SelfDesk -i SelfDesk "$1" "$2" 2>/dev/null || true
 }
 
-desligar_lg() {  # $1: o que disparou
-  hyprctl eval "hl.monitor({ output = \"desc:$LG_DESC\", disabled = true })" >/dev/null || return 1
-  echo "$1: LG desligado"
+desligar_extras() {  # $1: o que disparou
+  local alvos alvo
+  mapfile -t alvos < <(telas_extras)
+  (( ${#alvos[@]} > 0 )) || return 1
+  for alvo in "${alvos[@]}"; do
+    hyprctl eval "hl.monitor({ output = \"$alvo\", disabled = true })" >/dev/null || return 1
+  done
+  echo "$1: desligadas ${alvos[*]#desc:}"
   if [[ -z $desligou_em ]]; then
     desligou_em=$SECONDS
-    avisar "LG desligado: sessão do RustDesk" \
-      "Conexão de ${origem:-origem desconhecida}. O LG volta quando a sessão fechar. Para usar agora, ligue pelo painel Display."
+    avisar "Telas extras desligadas: sessão do SelfDesk" \
+      "Conexão de ${origem:-origem desconhecida}. Só o notebook fica ligado; as outras telas voltam quando a sessão fechar. Para usar agora, ligue pelo painel Display."
   fi
 }
 
@@ -93,12 +113,12 @@ vnc_conectado() {
   (( ${n:-0} > 0 ))
 }
 
-religar_lg() {  # $1: o que disparou
+religar_extras() {  # $1: o que disparou
   if vnc_conectado; then
-    touch "$MARCA_RELIGAR" && echo "$1: VNC conectado, o LG fica desligado (o vnc-sessao religa)"
+    touch "$MARCA_RELIGAR" && echo "$1: VNC conectado, as telas ficam desligadas (o vnc-sessao religa)"
     return 0
   fi
-  hyprctl reload >/dev/null && echo "$1: LG religado (hyprctl reload)"
+  hyprctl reload >/dev/null && echo "$1: telas religadas (hyprctl reload)"
 }
 
 novo_ciclo() {
@@ -122,19 +142,19 @@ pedido_de_conexao() {  # $1: linha do log do servidor
 
 ao_pedido() {  # $1: linha do log do servidor
   ler_origem "$1"
-  if ! $cedeu && lg_ligado && desligar_lg "pedido de conexão no log do RustDesk"; then
+  if ! $cedeu && desligar_extras "pedido de conexão no log do SelfDesk"; then
     pedido_em=$SECONDS
   fi
 }
 
-lg_ligado_na_sessao() {
+extra_ligada_na_sessao() {
   if [[ -n $desligou_em ]] && (( SECONDS - desligou_em >= CARENCIA_S )); then
     cedeu=true
-    echo "LG ligado à mão durante a sessão: fica ligado até a sessão fechar"
-    avisar "LG ligado durante a sessão do RustDesk" \
-      "Ele fica ligado até a sessão fechar. Nesse tempo o mouse do cliente web pode errar."
+    echo "tela ligada à mão durante a sessão: fica ligada até a sessão fechar"
+    avisar "Tela ligada durante a sessão do SelfDesk" \
+      "Ela fica ligada até a sessão fechar. Nesse tempo o mouse do cliente web pode errar."
   else
-    desligar_lg "sessão do RustDesk aberta"
+    desligar_extras "sessão do SelfDesk aberta"
   fi
 }
 
@@ -142,27 +162,27 @@ checar_sessao() {
   if sessao_aberta; then
     houve_sessao=true
     pedido_em=''
-    if ! $cedeu && lg_ligado; then lg_ligado_na_sessao; fi
+    if ! $cedeu && extra_ligada; then extra_ligada_na_sessao; fi
   elif $houve_sessao; then
-    religar_lg "sessão do RustDesk fechada"
+    religar_extras "sessão do SelfDesk fechada"
     houve_sessao=false
     novo_ciclo
   elif [[ -n $pedido_em ]] && (( SECONDS - pedido_em >= ESPERA_SESSAO_S )); then
-    religar_lg "pedido de conexão sem sessão em ${ESPERA_SESSAO_S} s"
+    religar_extras "pedido de conexão sem sessão em ${ESPERA_SESSAO_S} s"
     pedido_em=''
     novo_ciclo
   fi
 }
 
 encerrar() {
-  if $houve_sessao || [[ -n $pedido_em ]]; then religar_lg "serviço parado"; fi
+  if $houve_sessao || [[ -n $pedido_em ]]; then religar_extras "serviço parado"; fi
   exit 0
 }
 trap encerrar TERM INT
 
-# tail -F segue o arquivo pelo nome: o servidor do RustDesk troca o rustdesk_rCURRENT.log a cada
+# tail -F segue o arquivo pelo nome: o servidor do SelfDesk troca o selfdesk_rCURRENT.log a cada
 # reinício, e o tail lê o arquivo novo desde o começo.
-exec {log_fd}< <(tail -F -n0 "$LOG_RUSTDESK" 2>/dev/null)
+exec {log_fd}< <(tail -F -n0 "$LOG_SELFDESK" 2>/dev/null)
 
 while true; do
   if IFS= read -r -t "$INTERVALO_S" -u "$log_fd" linha; then

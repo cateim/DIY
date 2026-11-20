@@ -40,5 +40,9 @@ claude() {
 # (mode 600, never mirrored to DIY), read only when the alias runs.
 alias claude_api='ANTHROPIC_API_KEY="$(cat ~/.config/claude-api.env)" claude -p'
 
+# dotnet global tools (ilspycmd); same line as ~/.config/uwsm/env.d/91-dotnet-tools, here so
+# terminals opened before the next login also find them.
+case ":$PATH:" in *":$HOME/.dotnet/tools:"*) ;; *) PATH="$PATH:$HOME/.dotnet/tools" ;; esac
+
 # Attach ble.sh (keep this as the last line)
 [[ ! ${BLE_VERSION-} ]] || ble-attach

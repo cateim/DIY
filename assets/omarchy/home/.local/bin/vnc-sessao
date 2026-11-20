@@ -1,51 +1,62 @@
 #!/usr/bin/env bash
-# Enquanto houver alguém no VNC: não abre o protetor de tela e desliga o LG.
+# Enquanto houver alguém no VNC: não abre o protetor de tela e desliga todas as telas além da do
+# notebook (eDP-1): o LG, a portátil ou qualquer outra ligada na hora.
 # Por quê, o protetor: parado 10 minutos, o Omarchy abre o protetor animado, e o wayvnc passa a
 # mandar de 6,5 a 9,6 Mbps (pico de 27) pelo túnel da Cloudflare sem ninguém mexendo (medido em
 # 04/11/2026). Usa o interruptor do próprio Omarchy (omarchy-toggle screensaver-off, o mesmo do
 # menu): o omarchy-launch-screensaver não abre nada com ele ligado, e o bloqueio dos 30 minutos
 # continua igual. Só desliga o interruptor no fim se foi este serviço que ligou; a marca fica em
 # ~/.local/state/vnc-sessao/, para sobreviver a um reinício do serviço ou do notebook.
-# Por quê, o LG: o wayvnc só captura o eDP-1 (--output no wayvnc.service). Com o LG ligado, a
-# área de trabalho que está nele some de quem está no VNC. Desligado, as janelas dele vêm para o
-# notebook. Religa com "hyprctl reload", que relê o monitors.lua, como o rustdesk-tela-unica.
-# Com sessão do RustDesk aberta, quem religa é o rustdesk-tela-unica quando ela fecha. Se ela
+# Por quê, as telas: o wayvnc só captura o eDP-1 (--output no wayvnc.service). Com outra tela
+# ligada, a área de trabalho que está nela some de quem está no VNC. Desligada, as janelas vêm para o
+# notebook. Religa com "hyprctl reload", que relê o monitors.lua, como o selfdesk-tela-unica.
+# Com sessão do SelfDesk aberta, quem religa é o selfdesk-tela-unica quando ela fecha. Se ela
 # fechar com alguém no VNC, ele não religa e deixa a marca MARCA_RELIGAR, e este serviço religa
-# quando o último cliente do VNC sair. O último acesso remoto a fechar religa o LG.
-# Se o LG for ligado à mão durante o VNC, fica ligado: o serviço só insiste nos primeiros
+# quando o último cliente do VNC sair. O último acesso remoto a fechar religa as telas.
+# Se uma tela for ligada à mão durante o VNC, fica ligada: o serviço só insiste nos primeiros
 # CARENCIA_S, porque no começo de uma sessão remota o LG já religou sozinho (05/11/2026).
-# Se o LG já estava desligado à mão antes de o VNC conectar, ele não religa no fim.
+# Se nenhuma outra tela estava ligada quando o VNC conectou, o fim não religa nada.
 # Eventos: wayvncctl --json event-receive (client-connected e client-disconnected trazem o
 # connection_count; com --wait e --reconnect, wayvnc-startup e wayvnc-shutdown a cada reinício).
 # Roda como serviço: ~/.config/systemd/user/vnc-sessao.service.
 set -uo pipefail
 
-readonly LG_DESC='LG Electronics LG ULTRAWIDE 0x0003B53D'
-# O [k] fica de fora da linha de comando do próprio pgrep: o --service do RustDesk toma qualquer
-# processo com "<caminho do rustdesk> --cm" na linha de comando por uma sessão, e reinicia o
-# --server quando ele some (veja CM_PGREP no rustdesk-tela-unica).
-readonly CM_PGREP='/usr/lib/rustdesk/rustdes[k] --cm'
+# A tela que fica ligada. Com ela desligada (tampa fechada), o serviço não mexe nas telas.
+readonly TELA_NOTEBOOK=eDP-1
+# O [k] fica de fora da linha de comando do próprio pgrep: o --service do SelfDesk toma qualquer
+# processo com "<caminho do SelfDesk> --cm" na linha de comando por uma sessão, e reinicia o
+# --server quando ele some (veja CM_PGREP no selfdesk-tela-unica).
+readonly CM_PGREP='/usr/share/SelfDesk/selfdes[k] --cm'
 readonly TOGGLE='screensaver-off'
 readonly MARCA_PROTETOR="$HOME/.local/state/vnc-sessao/protetor-desligado"
-# Deixada pelo rustdesk-tela-unica quando não religou o LG por causa do VNC. Mesmo caminho lá.
-readonly MARCA_RELIGAR="${XDG_RUNTIME_DIR:-/run/user/$UID}/lg-religar-depois-do-vnc"
+# Deixada pelo selfdesk-tela-unica quando não religou as telas por causa do VNC. Mesmo caminho lá.
+readonly MARCA_RELIGAR="${XDG_RUNTIME_DIR:-/run/user/$UID}/telas-religar-depois-do-vnc"
 readonly INTERVALO_S=2
-# Até aqui, contado do desligar, um LG ligado é o religar sozinho do começo da sessão.
+# Até aqui, contado do desligar, uma tela ligada é o religar sozinho do começo da sessão.
 readonly CARENCIA_S=20
 
 ativo=false
-desligou_em=''        # $SECONDS do desligar do LG nesta sessão do VNC
-religar_no_fim=false  # foi este serviço que desligou o LG
+desligou_em=''        # $SECONDS do desligar das telas nesta sessão do VNC
+religar_no_fim=false  # foi este serviço que desligou as telas
 
 avisar() {  # $1: título, $2: texto
   notify-send -a wayvnc -i preferences-desktop-remote-desktop "$1" "$2" 2>/dev/null || true
 }
 
-lg_ligado() {
-  hyprctl monitors -j | jq -e --arg d "$LG_DESC" 'any(.[]; .description == $d)' >/dev/null
+# Telas ligadas além do notebook, no formato do output do hl.monitor (mesma função no
+# selfdesk-tela-unica, onde está o porquê). Vazio se o notebook não estiver ligado.
+telas_extras() {
+  hyprctl monitors -j | jq -r --arg n "$TELA_NOTEBOOK" '
+    select(any(.[]; .name == $n)) | .[] | select(.name != $n)
+    | if (.description // "") != "" and (.description | test("[\"\\\\]") | not)
+      then "desc:" + .description else .name end'
 }
 
-sessao_rustdesk() {
+extra_ligada() {
+  [[ -n $(telas_extras) ]]
+}
+
+sessao_selfdesk() {
   pgrep -xf "$CM_PGREP" >/dev/null
 }
 
@@ -55,9 +66,14 @@ clientes_vnc() {  # imprime quantos clientes o wayvnc tem agora (0 se ele não r
   echo "${n:-0}"
 }
 
-desligar_lg() {  # $1: o que disparou
-  hyprctl eval "hl.monitor({ output = \"desc:$LG_DESC\", disabled = true })" >/dev/null || return 1
-  echo "$1: LG desligado"
+desligar_extras() {  # $1: o que disparou
+  local alvos alvo
+  mapfile -t alvos < <(telas_extras)
+  (( ${#alvos[@]} > 0 )) || return 1
+  for alvo in "${alvos[@]}"; do
+    hyprctl eval "hl.monitor({ output = \"$alvo\", disabled = true })" >/dev/null || return 1
+  done
+  echo "$1: desligadas ${alvos[*]#desc:}"
 }
 
 desligar_protetor() {
@@ -74,22 +90,20 @@ devolver_protetor() {
 ativar() {
   ativo=true
   desligar_protetor
-  if lg_ligado; then
-    if desligar_lg "VNC conectado"; then
-      desligou_em=$SECONDS
-      religar_no_fim=true
-      avisar "LG desligado: VNC conectado" \
-        "O VNC só mostra o notebook. O LG volta quando o VNC desconectar. Para usar agora, ligue pelo painel Display."
-    fi
+  if desligar_extras "VNC conectado"; then
+    desligou_em=$SECONDS
+    religar_no_fim=true
+    avisar "Telas extras desligadas: VNC conectado" \
+      "O VNC só mostra o notebook. As outras telas voltam quando o VNC desconectar. Para usar agora, ligue pelo painel Display."
   fi
 }
 
 desativar() {  # $1: o que disparou
   ativo=false
   devolver_protetor
-  if { $religar_no_fim || [[ -f $MARCA_RELIGAR ]]; } && ! sessao_rustdesk; then
+  if { $religar_no_fim || [[ -f $MARCA_RELIGAR ]]; } && ! sessao_selfdesk; then
     rm -f "$MARCA_RELIGAR"
-    if ! lg_ligado; then hyprctl reload >/dev/null && echo "$1: LG religado (hyprctl reload)"; fi
+    hyprctl reload >/dev/null && echo "$1: telas religadas (hyprctl reload)"
   fi
   desligou_em=''
   religar_no_fim=false
@@ -106,9 +120,9 @@ ajustar() {  # $1: clientes conectados agora, $2: o que disparou
 insistir() {
   $ativo && [[ -n $desligou_em ]] || return 0
   if (( SECONDS - desligou_em >= CARENCIA_S )); then
-    desligou_em=''  # passou a carência: um LG ligado agora foi à mão e fica
-  elif lg_ligado; then
-    desligar_lg "LG religou sozinho no começo do VNC"
+    desligou_em=''  # passou a carência: uma tela ligada agora foi à mão e fica
+  elif extra_ligada; then
+    desligar_extras "tela religou sozinha no começo do VNC"
   fi
 }
 
