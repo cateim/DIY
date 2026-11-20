@@ -2,7 +2,7 @@
 
 O REA (Reverse Engineer Anything) dá ao agente de IA as ferramentas de engenharia reversa que ele não tem: lê binários nativos, apps JavaScript e Electron, assemblies .NET, APKs, firmware, sites e capturas de rede, sem precisar do código-fonte. Roda no notebook como servidor MCP (229 ferramentas e 6 prompts) e como CLI (`rea`, 175 comandos), e cada resposta vem como **Evidence**: o fato observado, o hash do alvo, o grau de confiança e o que ficou de fora. Com isso o agente explica como uma funcionalidade funciona, mostra a prova e reconstrói algo parecido no nosso projeto.
 
-Exemplo real deste guia: `rea-agents` 6.8.0 no notebook `alienware` (Omarchy, Node 26.13.0 do mise), registrado no Claude Code em 03/11/2026, com o Ghidra 12.1.2 do Arch como motor nativo.
+Exemplo real deste guia: `rea-agents` 6.8.0 no notebook `alienware` (Omarchy, prefixo npm próprio rodado pelo Node `latest` do mise desde 20/11/2026), registrado no Claude Code em 03/11/2026, com o Ghidra 12.1.2 do Arch como motor nativo.
 
 **Pré-requisito:** Node.js 22.x (>= 22.23.4), 24.x (>= 24.22.1) ou 26.12.1+ com npm (no notebook, o do mise), o `ps` do `procps-ng` (o Omarchy já traz) e o [Claude Code](https://code.claude.com/docs).
 
@@ -67,16 +67,19 @@ Trecho real de uma Evidence (`rea inspect-go-binary /usr/bin/tailscale`):
 ## Parte 1: Instalar a CLI
 
 ```bash
-npm install --global rea-agents
+npm install -g --prefix ~/.local/share/rea/npm rea-agents@6.8.0   # com o npm do mise (latest), nunca o /usr/bin/npm
+command -v rea                                                     # ~/.local/bin/rea (o wrapper abaixo)
 rea --version
 ```
 
-- Com o Node do mise, o pacote vai para `~/.local/share/mise/installs/node/<versão>/lib/node_modules/rea-agents` (uns 270 MB com as dependências) e o mise cria o shim do `rea` sozinho.
+- O pacote fica num prefixo npm só dele, `~/.local/share/rea/npm/lib/node_modules/rea-agents` (uns 270 MB com as dependências), fora de qualquer versão do Node. Só o `npm/` é do pacote: o resto de `~/.local/share/rea` (`bin/` com Kuna e Wakaru, `android/` com o JAR do JADX) é da [Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir).
+- Quem roda é o wrapper `~/.local/bin/rea` (POSIX sh, no espelho do Omarchy em [`assets/omarchy/home/.local/bin/rea`](../assets/omarchy/home/.local/bin/rea)): executa `~/.local/share/mise/installs/node/latest/bin/node` com o `scripts/rea.mjs` do prefixo, põe o prefixo e esse Node no `PATH` e no `NPM_CONFIG_PREFIX` e escreve erro só no stderr, porque o stdout é o canal JSON-RPC do MCP. Trocar de Node não pede reinstalação: os módulos nativos (`frida` e `@lydell/node-pty`) são N-API puro (só símbolos `napi_`, nenhum do V8), e REA e Frida carregaram no Node 22.23.4, 26.12.0 e 26.13.1.
+- Por que não o `npm install --global` no Node do mise: o pacote ia morar dentro de uma versão (`installs/node/26.13.0`), o MCP apontava para lá, e quando o Node ativo virou 26.13.1 o shim `rea` do mise passou a falhar no terminal. Um `mise prune` derrubaria o MCP junto.
 - O único script que roda na instalação é o do **Frida**, dependência opcional usada pelos comandos `*-frida-*`: ele baixa um binário pronto de 112 MB do release oficial (`github.com/frida/frida`). Nenhum outro pacote da árvore tem script de instalação (conferido na 6.8.0).
 
-> ⚠️ **Se o download do Frida falhar, o script cai no `make` e compila o Frida do zero**, o que prende o notebook por muito tempo. Cancele com `Ctrl+C` e instale sem scripts: `npm install --global rea-agents --ignore-scripts`. Tudo funciona, menos os comandos do Frida.
+> ⚠️ **Se o download do Frida falhar, o script cai no `make` e compila o Frida do zero**, o que prende o notebook por muito tempo. Cancele com `Ctrl+C` e instale sem scripts: `npm install -g --prefix ~/.local/share/rea/npm rea-agents@6.8.0 --ignore-scripts`. Tudo funciona, menos os comandos do Frida.
 
-Alternativa sem instalação global: `npx rea-agents setup`. Funciona, mas o registro passa a depender do cache do npx, e cada conexão MCP mantém um processo do npm. A instalação global é o caminho que o próprio REA recomenda quando há várias sessões do agente abertas ao mesmo tempo, que é o nosso caso (terminal mais a extensão do Antigravity).
+Alternativa sem instalação global: `npx rea-agents setup`. Funciona, mas o registro passa a depender do cache do npx, e cada conexão MCP mantém um processo do npm. A instalação fixa (aqui, o prefixo próprio) é o caminho que o próprio REA recomenda quando há várias sessões do agente abertas ao mesmo tempo, que é o nosso caso (terminal mais a extensão do Antigravity).
 
 ---
 
@@ -84,16 +87,20 @@ Alternativa sem instalação global: `npx rea-agents setup`. Funciona, mas o reg
 
 ```bash
 rea setup --client claude_code --dry-run   # mostra o plano, não grava nada
-rea setup --client claude_code --yes       # aplica o plano
-claude mcp get rea                         # Status: ✔ Connected
+rea setup --client claude_code --yes       # instala a skill e grava um registro (que é refeito logo abaixo)
+claude mcp remove rea -s user
+claude mcp add-json rea '<json>' -s user   # o JSON completo, com o wrapper e as 13 variáveis, está na Parte 6
+claude mcp get rea                         # Command: ~/.local/bin/rea mcp, Status: ✔ Connected
 ```
 
-O `setup` faz duas coisas, com backup:
+O `setup` faz duas coisas, com backup, e só a skill fica como ele deixou:
 
-| O quê                                               | Onde                                                                                                                                              |
-| :-------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Servidor MCP `rea`, escopo user (todos os projetos) | `~/.claude.json`, chave `mcpServers.rea`, comando `~/.local/share/mise/installs/node/<versão>/bin/rea mcp`. Backup em `~/.claude.json.rea.backup` |
-| Skill `reverse-engineer-anything` (versão 49)       | `~/.claude/skills/reverse-engineer-anything/`                                                                                                     |
+| O quê                                               | Onde                                                                                                                                                                                                                       |
+| :-------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Servidor MCP `rea`, escopo user (todos os projetos) | `~/.claude.json`, chave `mcpServers.rea`. O `setup` grava `~/.local/share/rea/npm/bin/rea`; o registro certo é `~/.local/bin/rea` com `args: ["mcp"]`, feito com o `claude mcp add-json`. Backup em `~/.claude.json.rea.backup` |
+| Skill `reverse-engineer-anything` (versão 49)       | `~/.claude/skills/reverse-engineer-anything/`                                                                                                                                                                              |
+
+> ⚠️ **Depois de qualquer `rea setup`, confira `claude mcp get rea`.** O `setup` (visto com `--dry-run` em 20/11/2026) registra `~/.local/share/rea/npm/bin/rea`, que acha o `node` pelo PATH e pode cair no `/usr/bin/node` 22.23.3, abaixo do mínimo do pacote (`^22.23.4 || ^24.22.1 || >=26.12.1`). Se o comando não for `~/.local/bin/rea`, refaça o par `claude mcp remove rea -s user` e `claude mcp add-json` com o JSON da [Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir). Registre sempre pelo CLI do Claude, nunca editando o `~/.claude.json` à mão.
 
 Depois, **reinicie o Claude Code** (terminal e extensão do Antigravity). As ferramentas `mcp__rea__*` só aparecem em sessão nova; a skill aparece na hora.
 
@@ -101,7 +108,7 @@ Depois, **reinicie o Claude Code** (terminal e extensão do Antigravity). As fer
 
 O `setup` detectou outros agentes neste notebook (Antigravity, Codex, Gemini CLI, OpenCode, Pi, Droid e Hermes) e eles ficaram de fora de propósito. Para incluir um: `rea setup --client gemini_cli --yes` (a lista de IDs está na [tabela de agentes suportados](https://github.com/morluto/rea/blob/main/docs/installation.md#supported-agents)).
 
-> ⚠️ **Plugin ou setup, nunca os dois.** O REA também existe como plugin do Claude Code (`/plugin marketplace add morluto/rea` e `/plugin install rea@rea`). Os dois juntos sobem dois servidores `rea`. Aqui ficou o `setup`, porque ele deixa o `rea` no terminal e o `rea doctor` enxerga o registro; o plugin não põe nada no PATH e o doctor não vê o estado dele.
+> ⚠️ **Plugin ou setup, nunca os dois.** O REA também existe como plugin do Claude Code (`/plugin marketplace add morluto/rea` e `/plugin install rea@rea`). Os dois juntos sobem dois servidores `rea`. Aqui ficou o `setup` (com o registro refeito pelo `claude mcp add-json`), porque o `rea` do terminal é o mesmo do MCP e o `rea doctor` enxerga o registro; o plugin não põe nada no PATH e o doctor não vê o estado dele.
 
 ---
 
@@ -115,7 +122,7 @@ rea capabilities                           # o que cada motor faz e os efeitos d
 
 Dentro de uma sessão do agente, peça para ele chamar `binary_session`: o campo `tool_availability` diz o que o servidor em execução consegue usar, com o motivo e a correção de cada ausência.
 
-Estado em 06/11/2026: Node 26.13.0 e `procps-ng` ok, registro e skill ok, Ghidra 12.1.2 com JDK 21 ok (`rea doctor --provider ghidra --json` passa nas 8 checagens) e todos os motores livres da [Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir) configurados, Kuna incluído. O `binary_session` ainda lista como ausentes: JEB, IDA e Hopper (pagos) e as ferramentas que só existem no macOS. A extração de firmware passou a funcionar no mesmo dia, com o Unblob (Parte 6). Em 20/11/2026 entraram as ferramentas avulsas da Parte 6 (radare2, Cutter, JADX, Binary Ninja Free, IDA Free, Frida e `ilspycmd`); a ponte do REA no Cutter ainda não foi conferida.
+Estado em 06/11/2026: Node 26.13.0 e `procps-ng` ok, registro e skill ok, Ghidra 12.1.2 com JDK 21 ok (`rea doctor --provider ghidra --json` passa nas 8 checagens) e todos os motores livres da [Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir) configurados, Kuna incluído. O `binary_session` ainda lista como ausentes: JEB, IDA e Hopper (pagos) e as ferramentas que só existem no macOS. A extração de firmware passou a funcionar no mesmo dia, com o Unblob (Parte 6). Em 20/11/2026 entraram as ferramentas avulsas da Parte 6 (radare2, Cutter, JADX, Binary Ninja Free, IDA Free, Frida e `ilspycmd`); a ponte do REA no Cutter não funciona com o `rz-cutter` do Arch (Parte 6). No mesmo dia o REA foi para o prefixo próprio com o wrapper `~/.local/bin/rea` (Parte 1): o `rea doctor` passou na checagem do Node, que antes falhava, e o `binary_session` mostra o prefixo novo em `server_identity.package.root_path`.
 
 ---
 
@@ -421,7 +428,7 @@ As variáveis entram no `env` do registro de uma vez, com o `claude mcp add-json
 claude mcp remove -s user rea
 claude mcp add-json -s user rea '{
   "type": "stdio",
-  "command": "<<HOME>>/.local/share/mise/installs/node/26.13.0/bin/rea",
+  "command": "<<HOME>>/.local/bin/rea",
   "args": ["mcp"],
   "env": {
     "GHIDRA_INSTALL_DIR": "/opt/ghidra",
@@ -445,7 +452,7 @@ claude mcp add-json -s user rea '{
 
 - `sasquatch-v4be`, o extrator de SquashFS 4 big-endian do Unblob (raro, alguns roteadores): o `sasquatch` do AUR compila só o `sasquatch`.
 - JEB, IDA Pro e Hopper, que são pagos. O IDA Free entrou em 20/11/2026, mas não pluga no REA (bloco abaixo).
-- pwndbg (o REA exige o caminho de um venv do pwndbg). O Cutter entrou em 20/11/2026, com o plugin do REA ligado à mão (bloco abaixo).
+- pwndbg (o REA exige o caminho de um venv do pwndbg). O Cutter entrou em 20/11/2026, mas o `rz-cutter` do Arch não carrega o plugin do REA (bloco abaixo).
 - O que só existe no macOS: `inspect_macho`, plist, Swift, asset catalog, assinatura de código e UI nativa.
 
 **Ferramentas avulsas, instaladas em 20/11/2026.** Servem para olhar o alvo por conta própria, ao lado do REA; só o Cutter tem uma ponte para ele, e o Frida divide com ele o mesmo `frida-server` no Android. Os pacotes estão no espelho ([`packages.txt`](../assets/omarchy/packages.txt), seção de engenharia reversa, e [`packages-aur.txt`](../assets/omarchy/packages-aur.txt)):
@@ -468,10 +475,12 @@ O IDA Free não pluga no REA: o provedor IDA pede o `REA_IDA_MCP_CONFIG`, a conf
 
 ```bash
 mkdir -p ~/.local/share/rizin/cutter/plugins/python
-ln -sfn ~/.local/share/mise/installs/node/26.13.0/lib/node_modules/rea-agents/bridge/cutter/rea_bridge.py ~/.local/share/rizin/cutter/plugins/python/rea_bridge.py
+ln -sfn ~/.local/share/rea/npm/lib/node_modules/rea-agents/bridge/cutter/rea_bridge.py ~/.local/share/rizin/cutter/plugins/python/rea_bridge.py
 ```
 
-O link quebra se essa instalação do Node sair. Depois de atualizar o REA para outro Node (Parte 7), refaça o `ln -sfn` com o caminho novo. A pasta da ponte, `~/.cache/rea/cutter-bridge`, é criada em execução. O link não entra no `files.txt`. Estado em 20/11/2026: o Cutter importa o plugin (o `.pyc` foi compilado), mas a ponte **não foi conferida de ponta a ponta**: o Cutter sem interface nunca chegou ao `setupInterface`. Falta abrir um binário no Cutter com interface e chamar `list_cutter_sessions` no REA.
+O link aponta para o prefixo do REA (Parte 1), então sobrevive à troca do Node e o `rea update` o mantém na versão nova. A pasta da ponte, `~/.cache/rea/cutter-bridge`, é criada em execução. O link não entra no `files.txt`.
+
+> ⚠️ **A ponte não funciona com o Cutter do Arch (20/11/2026).** O `rz-cutter 2.4.1-8` (compilado em 08/10/2026) não carrega **nenhum** plugin Python com o `pyside6 6.12.0-3` (compilado em 21/10/2026). O journal do Cutter diz `Plugin's create_cutter_plugin() function did not return an instance of CutterPlugin: "rea_bridge"`, e um plugin mínimo de teste falhou do mesmo jeito, então o defeito é do empacotamento do Arch, não do REA. Destrava com o `rz-cutter` recompilado contra o PySide6 atual ou com outra build do Cutter. Também: a análise automática do Cutter travou num PE de 146 MB (4,9 GB de RAM em 14 min, mesmo com `-A 0`); para alvo grande, fique no Ghidra pelo REA.
 
 > ℹ️ **Por que `jdk21-openjdk` junto do Ghidra:** o pacote do Arch pede um JDK (`java-environment>=21`) e o pacman pergunta qual instalar. O REA aceita JDK 21 ou mais novo com o Ghidra 12.1 e foi verificado com o 21, então fica o 21 para não haver pergunta.
 
@@ -483,7 +492,7 @@ GHIDRA_INSTALL_DIR=/opt/ghidra rea setup --client claude_code --dry-run   # 1 a�
 GHIDRA_INSTALL_DIR=/opt/ghidra rea setup --client claude_code --yes
 ```
 
-O setup grava `GHIDRA_INSTALL_DIR=/opt/ghidra` e `JAVA_HOME=/usr/lib/jvm/java-21-openjdk` no `env` de `mcpServers.rea` (`~/.claude.json`) e preserva esses valores nas próximas execuções. Vale para todo motor da tabela: na CLI, a variável vem do shell; no MCP, rode o setup com ela no ambiente e reinicie o Claude Code.
+O setup grava `GHIDRA_INSTALL_DIR=/opt/ghidra` e `JAVA_HOME=/usr/lib/jvm/java-21-openjdk` no `env` de `mcpServers.rea` (`~/.claude.json`) e preserva esses valores nas próximas execuções. Vale para todo motor da tabela: na CLI, a variável vem do shell; no MCP, rode o setup com ela no ambiente e reinicie o Claude Code. Desde 20/11/2026, todo `setup` troca o comando do registro pelo `~/.local/share/rea/npm/bin/rea`: confira `claude mcp get rea` e volte para o `~/.local/bin/rea` com o `claude mcp add-json` acima ([Parte 2](#parte-2-registrar-no-claude-code)). O caminho mais curto é pôr a variável nova direto nesse JSON.
 
 ---
 
@@ -492,25 +501,33 @@ O setup grava `GHIDRA_INSTALL_DIR=/opt/ghidra` e `JAVA_HOME=/usr/lib/jvm/java-21
 O REA solta versão a cada poucos dias (da 6.1 à 6.8 entre 09/10 e 25/10/2026). Atualize antes de investigar um erro:
 
 ```bash
-rea update                                 # atualiza a instalação global e confere a release
-rea setup --client claude_code --yes       # renova registro e skill (o update imprime esse comando)
+rea update                                 # atualiza o prefixo ~/.local/share/rea/npm no lugar e confere a release
+rea setup --client claude_code --yes       # renova a skill (o update imprime esse comando)
+claude mcp get rea                         # o comando tem que ser ~/.local/bin/rea; se não for, Parte 2
 ```
 
-Depois, reinicie o Claude Code.
+Depois, reinicie o Claude Code, ou `/mcp` e reconectar o `rea` em cada sessão aberta.
 
-> ⚠️ **Trocou o Node do mise? Reinstale.** O pacote global mora dentro da versão do Node (`.../installs/node/26.13.0/...`), e o registro do MCP aponta para esse caminho. Depois de `mise use -g node@<nova>`, rode de novo `npm install --global rea-agents` e `rea setup --client claude_code --yes`. Enquanto a versão antiga continuar instalada, o registro antigo segue funcionando; um `mise prune` que a remova quebra o MCP.
+O `rea update` reconhece o layout `<prefixo>/lib/node_modules/rea-agents` (`detectNpmInstallation` em `dist/cli-runtime/application__UpdateRuntime`) e atualiza o prefixo onde ele está. O wrapper chama o npm com o mesmo prefixo e o mesmo Node, então nada vai parar dentro de uma versão do Node do mise.
+
+> ⚠️ **O `rea setup` refaz o registro com o caminho errado.** Ele grava `~/.local/share/rea/npm/bin/rea`, que acha o `node` pelo PATH e pode pegar o `/usr/bin/node` 22.23.3, abaixo do mínimo do pacote (`^22.23.4 || ^24.22.1 || >=26.12.1`). Depois de todo `setup`, confira `claude mcp get rea` e, se o comando não for `~/.local/bin/rea`, refaça `claude mcp remove rea -s user` e `claude mcp add-json` com o JSON da [Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir).
+
+Trocar o Node do mise não pede mais nada: o wrapper usa o `latest` do mise, e um `mise uninstall` de versão antiga não derruba o REA. Em 20/11/2026 o `node@26.13.0` saiu assim (496 MB); só as sessões do Claude Code abertas antes da mudança, com o servidor `rea` ainda no caminho antigo, precisam de `/mcp` para reconectar.
 
 ---
 
 ## Parte 8: Remover
 
 ```bash
-rea uninstall                  # tira registro e skill de todos os agentes onde o REA se registrou
+rea uninstall                  # tira registro e skill de todos os agentes onde o REA se registrou (rode antes de apagar o prefixo)
 rea uninstall --purge-data     # também apaga o estado (~/.rea) e os caches do Kuna e do Hopper em ~/.cache/rea
-npm uninstall --global rea-agents
+claude mcp get rea             # deve dizer que não existe; se ainda existir: claude mcp remove rea -s user
+rm -rf ~/.local/share/rea/npm  # só o prefixo do pacote; bin/ e android/ ao lado são dos motores da Parte 6
+rm ~/.local/bin/rea            # o wrapper (tire também a linha dele do assets/omarchy/files.txt e rode o export.sh)
+rm ~/.local/share/rizin/cutter/plugins/python/rea_bridge.py   # o link da ponte no Cutter
 ```
 
-O `uninstall` não mexe no Node, nas Evidence, nas capturas, em outras skills nem em outros servidores MCP.
+O `uninstall` não mexe no Node, nas Evidence, nas capturas, em outras skills nem em outros servidores MCP. Nunca apague `~/.local/share/rea` inteiro sem querer tirar também Kuna, Wakaru e o JAR do JADX.
 
 ---
 
@@ -519,13 +536,16 @@ O `uninstall` não mexe no Node, nas Evidence, nas capturas, em outras skills ne
 | Sintoma                                                         | Causa                                                                       | Correção                                                                                                     |
 | :-------------------------------------------------------------- | :-------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------- |
 | Ferramentas `mcp__rea__*` não aparecem no agente                | A sessão foi aberta antes do `setup`                                        | Reinicie o Claude Code; `claude mcp get rea` deve dizer `Connected`                                          |
-| `rea` some ou o MCP falha só em um projeto                      | O projeto fixa outra versão do Node no mise, e o `rea` usa o `node` do PATH | `mise exec node@26.13.0 -- rea ...`, ou instale o REA também nessa versão (precisa estar na faixa suportada) |
+| `rea` não é o `~/.local/bin/rea` (`command -v rea`)              | Sobrou um shim do mise ou uma instalação global antiga no PATH              | Tire a instalação antiga (`npm uninstall --global rea-agents` naquele Node) e confira o PATH ([Parte 1](#parte-1-instalar-a-cli)) |
 | `unsupported binary format` num `.bin` de ESP32                 | O leitor de imagens ESP ainda não foi publicado (6.8.0)                     | Aguarde a release seguinte (Parte 4)                                                                         |
 | `Summary delivery requires --evidence_output`                   | `--detail summary` sem arquivo de saída                                     | Acrescente `--evidence_output` com um arquivo novo                                                           |
 | `GHIDRA_INSTALL_DIR is not set` no `rea doctor`                 | Ghidra não instalado ou não apontado                                        | [Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir)                                         |
 | Motor (Ghidra, JADX, firmware) recusa iniciar com erro genérico | Falta um `ps` compatível com o procps no PATH do REA                        | `pacman -Qo /usr/bin/ps` deve responder `procps-ng`                                                          |
-| `env: node: No such file or directory` no log do MCP            | O agente subiu sem o Node do mise no PATH                                   | Abra o agente a partir de um shell com o mise ativo e rode o `setup` de novo                                 |
-| `npm install` parado muito tempo compilando                     | O download do binário do Frida falhou e o script caiu no `make`             | `Ctrl+C` e `npm install --global rea-agents --ignore-scripts`                                                |
+| `rea: Node not found at ...` no stderr ou no log do MCP         | Não há `~/.local/share/mise/installs/node/latest` (Node do mise removido)   | `mise install node@latest` e `/mcp` para reconectar                                                          |
+| `env: node: No such file or directory` ou Node abaixo de 22.23.4 no MCP | Um `rea setup` gravou `~/.local/share/rea/npm/bin/rea`, que usa o `node` do PATH | `claude mcp get rea` e refazer o registro com `~/.local/bin/rea` ([Parte 2](#parte-2-registrar-no-claude-code)) |
+| MCP do `rea` cai numa sessão aberta antes de 20/11/2026         | O servidor ainda roda do Node 26.13.0, já removido                          | `/mcp` e reconectar o `rea`                                                                                  |
+| `npm install` parado muito tempo compilando                     | O download do binário do Frida falhou e o script caiu no `make`             | `Ctrl+C` e o mesmo `npm install -g --prefix ...` da Parte 1 com `--ignore-scripts`                           |
+| `create_cutter_plugin() function did not return an instance of CutterPlugin` no journal do Cutter | O `rz-cutter 2.4.1-8` do Arch não carrega plugin Python com o `pyside6 6.12.0-3` | Sem correção do lado do REA: `rz-cutter` recompilado ou outra build do Cutter ([Parte 6](#parte-6-motores-opcionais-instalar-quando-a-tarefa-pedir)) |
 | Dois servidores `rea` no `/mcp`                                 | Plugin e `setup` instalados juntos                                          | Fique com um: `claude plugin uninstall rea@rea` ou `rea uninstall`                                           |
 | Ghidra refaz a auto-análise mesmo reabrindo com snapshot        | O snapshot guarda respostas e Evidence, não o banco do Ghidra (6.8.0)       | Faça todas as perguntas numa sessão só e feche no fim ([Parte 5.5](#55-pelo-terminal))                       |
 
@@ -544,7 +564,7 @@ O `uninstall` não mexe no Node, nas Evidence, nas capturas, em outras skills ne
 
 | Recurso            | URL / Local                                                                   |
 | :----------------- | :---------------------------------------------------------------------------- |
-| **CLI**            | `rea` (`~/.local/share/mise/installs/node/26.13.0/bin/rea`)                   |
+| **CLI**            | `rea` (wrapper `~/.local/bin/rea`; pacote em `~/.local/share/rea/npm`)        |
 | **Registro MCP**   | `~/.claude.json`, chave `mcpServers.rea` (backup `~/.claude.json.rea.backup`) |
 | **Skill**          | `~/.claude/skills/reverse-engineer-anything/`                                 |
 | **Ghidra**         | `/opt/ghidra` (pacote `ghidra`), JDK em `/usr/lib/jvm/java-21-openjdk`        |

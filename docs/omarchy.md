@@ -193,6 +193,14 @@ Os quatro agentes de usuário que a sessão principal do Claude Code chama confo
 
 > ℹ️ O Claude Code só carrega agente novo ou alterado numa sessão nova. O `advisorModel` do `settings.json` fica em `opus`: os agentes Opus herdam esse advisor, e o `reviewer` fica sem, porque o advisor precisa ser pelo menos do nível do modelo que o consulta.
 
+### 3.11 REA (`~/.local/bin/rea`)
+
+O REA (`rea-agents`) mora num prefixo npm próprio, `~/.local/share/rea/npm`, fora de qualquer versão do Node; a instalação, o registro no Claude Code e a atualização estão no [guia do REA](./rea.md#parte-1-instalar-a-cli).
+
+| Arquivo            | O que muda                                                                                                                                                                                                                                                                                                                                                                  |
+| :----------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `~/.local/bin/rea` | Wrapper POSIX sh que roda o `scripts/rea.mjs` do prefixo com o Node `latest` do mise, com o prefixo e esse Node no `PATH` e no `NPM_CONFIG_PREFIX`, para o `rea update` atualizar o prefixo no lugar. Erro vai só para o stderr, porque o stdout é o canal JSON-RPC do MCP. O `command -v rea` resolve para ele, e o MCP `rea` do Claude Code é registrado com ele (`args: ["mcp"]`). Desde 20/11/2026; antes, a instalação global morava dentro do Node 26.13.0 e quebrou quando o Node ativo virou 26.13.1. |
+
 ## Parte 4: Pacotes
 
 As três listas ficam em [`assets/omarchy/`](../assets/omarchy/) e se instalam pela [Parte 2](#parte-2-reinstalação-do-zero). Ficaram de fora das listas, cada um com passo próprio: `tailscale`, `voxtype-bin` e os `mkinitcpio-netconf/tinyssh/utils` (instalados pelo `ssh-no-boot.sh`).
@@ -217,8 +225,8 @@ uv tool install --python 3.12 oci-cli    # OCI CLI num Python 3.12 do uv (o do s
 uv tool install unblob==26.6.4 --with-executables-from jefferson,ubi-reader   # extração de firmware do REA (docs/rea.md, Parte 6)
 uv tool install frida-tools --with 'frida==17.23.2'   # Frida na mesma versão que vem dentro do REA 6.8.0 (docs/rea.md, Parte 6)
 dotnet tool install -g ilspycmd          # ILSpy de linha de comando, em ~/.dotnet/tools (no PATH pelo 91-dotnet-tools, Parte 3.9)
-npm install --global rea-agents          # REA, no Node do mise (docs/rea.md)
-rea setup --client claude_code --yes     # MCP e skill do REA no Claude Code; acha o Ghidra em /opt/ghidra
+npm install -g --prefix ~/.local/share/rea/npm rea-agents@6.8.0   # REA no prefixo próprio, com o npm do mise; roda pelo ~/.local/bin/rea (Parte 3.11)
+rea setup --client claude_code --yes     # skill do REA no Claude Code; o registro do MCP é refeito com o wrapper (docs/rea.md, Parte 2)
 rustup default stable && rustup component add rust-analyzer   # toolchain e o LSP do plugin rust-analyzer-lsp (o do pacote rustup é só o proxy)
 ```
 

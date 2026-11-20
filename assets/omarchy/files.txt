@@ -80,6 +80,9 @@
 # ---- Agentes do Claude Code (o resto do ~/.claude fica fora: dados pessoais) ----
 ~/.claude/agents/
 
+# ---- REA (engenharia reversa): wrapper do prefixo npm próprio, docs/rea.md Parte 1 ----
+~/.local/bin/rea
+
 # ---- Sistema (/etc): install.sh --system, com sudo ----
 /etc/limine-entry-tool.d/alienware-display.conf
 /etc/systemd/system/cloudflared.service
