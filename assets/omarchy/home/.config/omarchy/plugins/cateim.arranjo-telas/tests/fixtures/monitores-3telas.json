@@ -1,0 +1,67 @@
+[
+  {
+    "name": "eDP-1",
+    "description": "AU Optronics 0x1396",
+    "width": 2560,
+    "height": 1440,
+    "refreshRate": 120.05000,
+    "x": 0,
+    "y": 0,
+    "scale": 1.25,
+    "transform": 0,
+    "disabled": false,
+    "mirrorOf": "none",
+    "availableModes": [
+      "2560x1440@120.05Hz",
+      "2560x1440@60.02Hz"
+    ]
+  },
+  {
+    "name": "DP-1",
+    "description": "Invalid Vendor Codename - RTK FHD demoset-1",
+    "width": 1920,
+    "height": 1080,
+    "refreshRate": 60.00000,
+    "x": 2048,
+    "y": 36,
+    "scale": 1,
+    "transform": 0,
+    "disabled": false,
+    "mirrorOf": "none",
+    "availableModes": [
+      "1920x1080@60.00Hz",
+      "1920x1080@60.00Hz",
+      "1920x1080@60.00Hz",
+      "1920x1080@59.94Hz",
+      "1600x900@60.00Hz",
+      "1280x1024@60.02Hz",
+      "1280x720@60.00Hz",
+      "1280x720@59.94Hz",
+      "1024x768@60.00Hz",
+      "800x600@60.32Hz",
+      "720x480@60.00Hz",
+      "720x480@59.94Hz",
+      "640x480@60.00Hz",
+      "640x480@59.94Hz",
+      "640x480@59.94Hz"
+    ]
+  },
+  {
+    "name": "HDMI-A-4",
+    "description": "LG Electronics LG ULTRAWIDE 0x0003B53D",
+    "width": 2560,
+    "height": 1080,
+    "refreshRate": 74.99,
+    "x": -256,
+    "y": -1080,
+    "scale": 1,
+    "transform": 0,
+    "disabled": false,
+    "mirrorOf": "none",
+    "availableModes": [
+      "2560x1080@74.99Hz",
+      "2560x1080@60.00Hz",
+      "1920x1080@60.00Hz"
+    ]
+  }
+]

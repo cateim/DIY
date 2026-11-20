@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Test stub for systemctl: logs argv to $STUB_LOG. is-active succeeds only
+# when STUB_ATIVO=1; every other verb succeeds.
+set -euo pipefail
+printf '%s\n' "systemctl" "$@" "@@" >> "$STUB_LOG"
+for arg in "$@"; do
+  if [[ "$arg" == "is-active" ]]; then
+    [[ "${STUB_ATIVO:-0}" == "1" ]] && exit 0
+    exit 3
+  fi
+done
+exit 0

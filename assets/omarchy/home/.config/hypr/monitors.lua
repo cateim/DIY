@@ -11,7 +11,7 @@ hl.monitor({ output = "", mode = "preferred", position = "auto", scale = omarchy
 -- o comando grava a escala na regra com o nome da tela e põe em omarchy_gdk_scale a menor
 -- escala arredondada (aqui 1). Com 2, os apps GTK do XWayland abrem com o dobro do tamanho.
 -- O Alienware fica na origem 0x0 de propósito: o xdg-desktop-portal-hyprland informa toda
--- tela compartilhada na posição (0,0) (src/portals/Screencopy.cpp), e o RustDesk usa essa
+-- tela compartilhada na posição (0,0) (src/portals/Screencopy.cpp), e o SelfDesk (RustDesk) usa essa
 -- posição para mirar o mouse. Com o eDP-1 em outro ponto, o cursor remoto caía no LG
 -- (rustdesk#15731). O arranjo físico é o mesmo de antes, só a origem mudou.
 -- Alienware. Escala 1.25: ocupa 2048x1152 no layout.
@@ -19,9 +19,9 @@ hl.monitor({ output = "eDP-1", mode = "2560x1440@120", position = "0x0", scale =
 -- LG ultrawide na parede, acima do notebook (pela descrição, não pela porta HDMI-A-4).
 -- Escala 1: ocupa 2560x1080. y = -1080 (altura do LG); x = -(2560 - 2048) / 2 = -256,
 -- centralizado sobre o Alienware.
--- Durante uma sessão do RustDesk o LG fica desligado pelo ~/.local/bin/rustdesk-tela-unica
--- (serviço de usuário rustdesk-tela-unica): com duas telas, o cliente web erra o mouse. No fim
--- da sessão ele roda hyprctl reload, que relê este arquivo e religa o LG daqui.
+-- Durante uma sessão do SelfDesk o LG (e toda tela além do eDP-1) fica desligado pelo
+-- ~/.local/bin/selfdesk-tela-unica (serviço de usuário): com duas telas, o cliente web erra o
+-- mouse. No fim da sessão ele roda hyprctl reload, que relê este arquivo e religa as telas daqui.
 hl.monitor({ output = "desc:LG Electronics LG ULTRAWIDE 0x0003B53D", mode = "2560x1080@75", position = "-256x-1080", scale = 1 })
 -- O mesmo LG pelo nome da porta, para o painel Display. Desde o Omarchy 4.5 o painel liga e
 -- desliga uma tela pelo nome (hl.monitor com output = "HDMI-A-4" e só disabled; Panel.qml,
@@ -30,6 +30,13 @@ hl.monitor({ output = "desc:LG Electronics LG ULTRAWIDE 0x0003B53D", mode = "256
 -- valendo se a porta mudar de nome. Testado em 05/11/2026: desligar pelo serviço ou pelo painel
 -- e ligar pelo painel volta em -256x-1080 a 75 Hz. O vigia-omarchy avisa se o painel mudar.
 hl.monitor({ output = "HDMI-A-4", mode = "2560x1080@75", position = "-256x-1080", scale = 1 })
+-- Tela portátil (RTK FHD) na porta Thunderbolt/USB-C, à direita do Alienware. Sem regra o
+-- position = "auto" a punha em 2304x0, à direita do LG (que termina em x = 2304), deixando um
+-- vão de 256 px depois do Alienware (que termina em x = 2048): o mouse não passava. x = 2048
+-- encosta no Alienware; y = (1152 - 1080) / 2 = 36 centraliza na altura. Regra por descrição
+-- e pelo nome da porta, pelo mesmo motivo do LG (painel Display liga/desliga pelo nome).
+hl.monitor({ output = "desc:Invalid Vendor Codename - RTK FHD demoset-1", mode = "1920x1080@60", position = "2048x36", scale = 1 })
+hl.monitor({ output = "DP-1", mode = "1920x1080@60", position = "2048x36", scale = 1 })
 
 -- Configure a specific monitor.
 -- hl.monitor({ output = "DP-2", mode = "2560x1440@144", position = "0x0", scale = 1 })

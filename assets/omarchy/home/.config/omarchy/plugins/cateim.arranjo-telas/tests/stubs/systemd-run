@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Test stub for systemd-run: logs argv to $STUB_LOG and exits $STUB_RUN_EXIT.
+set -euo pipefail
+printf '%s\n' "systemd-run" "$@" "@@" >> "$STUB_LOG"
+exit "${STUB_RUN_EXIT:-0}"

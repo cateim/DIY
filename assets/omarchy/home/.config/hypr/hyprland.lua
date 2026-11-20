@@ -17,6 +17,11 @@ require("default.hypr.omarchy")
 -- defaults so package updates can improve the defaults without rewriting your
 -- ~/.config/hypr files.
 require("hypr.monitors")
+-- Arranjo das telas (plugin cateim.arranjo-telas): posição, modo e orientação das telas externas
+-- por mescla nas regras do monitors.lua, lidas de ~/.config/hypr/monitors-arranjo.tsv. O pcall
+-- segura qualquer erro do módulo, e o resto da config (atalhos inclusive) roda mesmo assim.
+local arranjo_ok, arranjo_erro = pcall(function() require("hypr.monitors-arranjo").aplicar() end)
+if not arranjo_ok then print("monitors-arranjo: " .. tostring(arranjo_erro)) end
 require("hypr.input")
 require("hypr.bindings")
 require("hypr.looknfeel")
@@ -28,7 +33,7 @@ require("default.hypr.toggles")
 -- Add any other personal Hyprland configuration below.
 -- o.window("qemu", { workspace = "5" })
 
--- Bitwarden visível no acesso remoto (wayvnc e RustDesk). O Omarchy esconde o
+-- Bitwarden visível no acesso remoto (wayvnc e SelfDesk). O Omarchy esconde o
 -- Bitwarden de qualquer captura de tela (default/hypr/apps/bitwarden.lua).
 -- Efeito colateral: ele também aparece em compartilhamento de tela e gravações.
 o.window("^(Bitwarden)$", { no_screen_share = false })

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Test stub for notify-send: logs argv to $STUB_LOG.
+set -euo pipefail
+printf '%s\n' "notify-send" "$@" "@@" >> "$STUB_LOG"
+exit 0
