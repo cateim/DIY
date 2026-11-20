@@ -1,0 +1,4 @@
+{
+    "runOnlyWhen": "findmnt -no SOURCE /home | grep -q '^/dev/mapper/cateim'",
+    "version": 1
+}
