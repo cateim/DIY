@@ -61,12 +61,13 @@
 ~/.config/systemd/user/vnc-sessao.service
 
 # ---- Google Drive (drive-sync) ----
-# Desde 10/11/2026 quem roda o drive-sync é o DriveSync: as units vêm do pacote
-# dele e a ~/.config/drive-sync nasce da assunção (T), que lê o drive-sync.sh.
-# Por isso nada daqui: espelhar a config faria a reinstalação recusar a
-# assunção e rodar o bisync sem as listagens. O drive-sync.sh e o aviso ficam
-# em scripts/, só para o primeiro resync (Parte 5). Os filtros vivem no heredoc
-# do drive-sync.sh: mudou o filters.txt com F, copie para lá (Parte 6).
+# Quem roda o drive-sync é o DriveSync: as units vêm do pacote dele e a conta
+# nasce da primeira configuração (T). Só a trava da máquina entra aqui, e ela
+# volta antes da configuração sem atrapalhar. A config da conta e o filters.txt
+# ficam de fora: com o filters.txt no lugar o setup recusa, e uma config de
+# conta pularia o setup. Os filtros vivem em drive-sync-filters.txt, importado
+# no setup: mudou o filters.txt, copie para lá (Parte 6).
+~/.config/drive-sync/machine.json
 
 # ---- LSPs dos plugins do Claude Code (o /usr/local só vai com install.sh --system) ----
 ~/.bundle/config

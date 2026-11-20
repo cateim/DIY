@@ -1,0 +1,90 @@
+# gdrive-filtros.txt: o que o rclone bisync NAO sincroniza entre ~/Drive e o Google Drive.
+# Gerado pelo drive-sync.sh. Mudou este arquivo? Rode ./drive-sync.sh resync (o bisync exige).
+# Regra sem "/" no inicio vale em qualquer pasta; "/GitHub/**/x/**" vale so nos repositorios.
+
+# ---- Git: o historico vive no GitHub e no Forgejo ----
+
+# ---- Dependencias e ambientes, refeitos com um comando ----
+- /GitHub/**/venv/**
+
+# ---- Builds e caches dos repositorios ----
+- /GitHub/**/build/**
+- /GitHub/**/dist/**
+- /GitHub/**/target/**
+- /GitHub/**/.pio/**
+- /GitHub/**/managed_components/**
+- /GitHub/**/.next/**
+- /GitHub/**/.nuxt/**
+- /GitHub/**/.svelte-kit/**
+- /GitHub/**/.turbo/**
+- /GitHub/**/.parcel-cache/**
+- /GitHub/**/.cache/**
+- /GitHub/**/coverage/**
+- /GitHub/**/.pytest_cache/**
+- /GitHub/**/.mypy_cache/**
+- /GitHub/**/.ruff_cache/**
+- /GitHub/**/.tox/**
+- /GitHub/**/.gradle/**
+- /GitHub/**/.dart_tool/**
+
+# ---- Atalhos do Google Docs: o documento vive na nuvem e abre no navegador ----
+
+# ---- Lixo do Windows, de editores e do Drive for desktop ----
+
+# ---- Links simbolicos dos repositorios que tem arquivo de mesmo nome na nuvem ----
+# O rclone ignora link no disco, e o Windows subiu cada um como arquivo de texto. Sem estas
+# regras, a rodada base baixaria o texto por cima do link que o organizar-home.sh refez (01/11).
+- /GitHub/origo/components/libwally-core/upstream/src/ccan/ccan/**/LICENSE
+
+# BEGIN DriveSync: ready-made groups
+# group: git
+- .git/**
+- .git
+# group: nodeModules
+- node_modules/**
+# group: python
+- .venv/**
+- venv/**
+- __pycache__/**
+- *.pyc
+# group: builds
+- build/**
+- dist/**
+- target/**
+- .pio/**
+- .next/**
+- .nuxt/**
+- .svelte-kit/**
+# group: googleDocs
+- *.gdoc
+- *.gsheet
+- *.gslides
+- *.gdraw
+- *.gform
+- *.gscript
+- *.gsite
+- *.gmap
+- *.gjam
+- *.glink
+- *.gvid
+# group: systemJunk
+- desktop.ini
+- Thumbs.db
+- .DS_Store
+# group: temporary
+- .~lock.*#
+- .tmp.drivedownload/**
+- .tmp.driveupload/**
+# END DriveSync: ready-made groups
+
+# BEGIN DriveSync: paths on this computer
+- /GitHub/wiim/custom_components/home_topology
+- /GitHub/wiim/custom_components/home_topology/**
+# END DriveSync: paths on this computer
+
+# BEGIN DriveSync: rules by name
+- .venv/**
+- __pycache__/**
+- *.pyc
+- graphify-out/**
+# END DriveSync: rules by name
