@@ -1,5 +1,5 @@
 [Unit]
-Description=VNC: sem protetor de tela e sem o LG enquanto houver alguém conectado
+Description=VNC: sem protetor de tela e só com a tela do notebook enquanto houver alguém conectado
 PartOf=graphical-session.target
 After=graphical-session.target wayvnc.service
 

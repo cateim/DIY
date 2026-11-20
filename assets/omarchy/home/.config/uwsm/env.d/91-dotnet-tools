@@ -1,0 +1,4 @@
+# Ferramentas globais do dotnet (dotnet tool install -g) no fim do PATH de toda a sessão.
+# Hoje: ilspycmd, decompilador .NET de linha de comando (engenharia reversa, DIY docs/rea.md).
+# Mudanças pedem novo login.
+case ":$PATH:" in *":$HOME/.dotnet/tools:"*) ;; *) PATH="$PATH:$HOME/.dotnet/tools" ;; esac

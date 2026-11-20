@@ -1,9 +1,14 @@
 # Pacotes instalados depois do Omarchy, dos repositórios core/extra/multilib e do
-# repositório do Omarchy (google-chrome, spotify, rustdesk e claude-desktop vêm dele).
+# repositório do Omarchy (google-chrome, spotify e claude-desktop vêm dele).
 # Levantado do pacman.log em 03/11/2026: só os explícitos fora das listas do Omarchy.
 #
 # Instalar:  omarchy pkg add $(grep -vE '^\s*(#|$)' assets/omarchy/packages.txt | cut -d' ' -f1)
 # AUR em packages-aur.txt; flatpak em flatpak.txt.
+#
+# Fora de repositório: o SelfDesk (cliente RustDesk da Self-Labs, pacote "selfdesk", conflita com
+# o rustdesk) vem da Release do self-labs/selfdesk, sem atualização pelo pacman -Syu:
+#   sudo pacman -U https://github.com/self-labs/selfdesk/releases/latest/download/selfdesk-x86_64.pkg.tar.zst
+#
 # Ficam de fora de propósito (têm passo próprio no docs/omarchy.md): tailscale
 # (omarchy install service tailscale), voxtype-bin (convite do Omarchy) e
 # mkinitcpio-netconf/tinyssh/utils (scripts/ssh-no-boot.sh).
@@ -19,7 +24,6 @@ kdeconnect
 # ---- Acesso remoto ----
 wayvnc
 cloudflared
-rustdesk
 freerdp
 remmina
 
@@ -70,6 +74,11 @@ wabt               # 1.0.42: WebAssembly
 python-pwntools    # 4.15.0: layout de ELF e core dump
 mitmproxy          # 12.2.3: captura nativa do mitmdump
 rizin              # sessão de debug do rizin
+radare2            # 6.2.2: CLI r2 (20/11/2026, junto com as quatro linhas abaixo)
+r2ghidra           # decompilador do Ghidra dentro do r2 (comando pdg)
+rz-cutter          # 2.4.1: GUI do rizin, binário cutter; o pacote cutter do extra é outro (corta conexões TCP), nunca instalar
+rz-ghidra          # decompilador do Ghidra dentro do rizin e do Cutter
+jadx               # 1.5.6: GUI e CLI de APK e dex; o REA segue no JAR do jadx-headless-mcp
 erofs-utils        # extratores do Unblob (extração de firmware do REA): fsck.erofs,
 lzop               # lzop,
 partclone          # partclone.restore

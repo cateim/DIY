@@ -11,6 +11,7 @@
 ~/.config/hypr/igualar-janelas.lua
 ~/.config/hypr/hyprland.lua
 ~/.config/hypr/input.lua
+~/.config/hypr/monitors-arranjo.lua
 ~/.config/hypr/monitors.lua
 
 # ---- Shell do Omarchy (barra, ociosidade, fonte, agente padrão, plugins) ----
@@ -19,6 +20,7 @@
 ~/.config/omarchy/defaults/agent
 ~/.config/omarchy/themed/chromium.theme.tpl
 ~/.config/omarchy/plugins/cateim.window-switcher/
+~/.config/omarchy/plugins/cateim.arranjo-telas/
 
 # ---- Vigia das atualizações do Omarchy (avisa quando muda o que as personalizações usam) ----
 ~/.local/bin/vigia-omarchy
@@ -55,8 +57,8 @@
 ~/.config/xkb/symbols/brvnc
 ~/.config/systemd/user/wayvnc.service
 ~/.local/bin/vnc-trocar-tela
-~/.local/bin/rustdesk-tela-unica
-~/.config/systemd/user/rustdesk-tela-unica.service
+~/.local/bin/selfdesk-tela-unica
+~/.config/systemd/user/selfdesk-tela-unica.service
 ~/.local/bin/vnc-sessao
 ~/.config/systemd/user/vnc-sessao.service
 
@@ -72,6 +74,7 @@
 # ---- LSPs dos plugins do Claude Code (o /usr/local só vai com install.sh --system) ----
 ~/.bundle/config
 ~/.config/uwsm/env.d/90-node-mise
+~/.config/uwsm/env.d/91-dotnet-tools
 /usr/local/bin/jdtls
 
 # ---- Agentes do Claude Code (o resto do ~/.claude fica fora: dados pessoais) ----
@@ -81,7 +84,7 @@
 /etc/limine-entry-tool.d/alienware-display.conf
 /etc/systemd/system/cloudflared.service
 /etc/systemd/system/home-emergencia.service
-/etc/systemd/system/rustdesk.service.d/sessao.conf
+/etc/systemd/system/SelfDesk.service.d/sessao.conf
 /etc/udev/rules.d/20-hw1.rules
 /etc/udev/rules.d/51-coinkite.rules
 /etc/udev/rules.d/51-trezor.rules
