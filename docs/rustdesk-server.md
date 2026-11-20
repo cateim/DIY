@@ -225,6 +225,133 @@ RustDesk Server no Windows Server 2025. Mantenha uma cópia dos arquivos `id_ed2
 - **Backup:** `/srv/rustdesk/data` inteiro. O crítico é o `id_ed25519` (privado): sem ele você perde a Key e
   reconfigura todos os clientes. Guarde-o cifrado, fora da VPS.
 
+## Parte 9: Cliente SelfDesk (RustDesk com a marca Self-Labs)
+
+O **[SelfDesk](https://github.com/self-labs/selfdesk)** é o cliente RustDesk da Self-Labs: já sai apontado para
+o `rustdesk-id.selflabs.org`, com a Key, o API Server do CortenDesk (Parte 6) e a marca Self-Labs. Nada de
+colar servidor e Key à mão em cada máquina. Ele é gerado pelo [rdgen](https://github.com/bryangerlach/rdgen)
+a partir do `selfdesk.json` do repositório, e um workflow diário publica uma Release nova sempre que o rdgen
+passa a suportar uma versão nova do RustDesk.
+
+### 9.1. Download
+
+Os nomes dos arquivos não levam versão, então o link sempre entrega a Release mais recente:
+
+| Sistema              | URL                                                                                |
+| :------------------- | :--------------------------------------------------------------------------------- |
+| Windows 64           | `https://github.com/self-labs/selfdesk/releases/latest/download/selfdesk.exe`      |
+| Debian/Ubuntu x86_64 | `https://github.com/self-labs/selfdesk/releases/latest/download/selfdesk-x86_64.deb`  |
+| Debian/Ubuntu ARM64  | `https://github.com/self-labs/selfdesk/releases/latest/download/selfdesk-aarch64.deb` |
+
+Os outros formatos (`.msi`, `.rpm`, AppImage, flatpak) e o `SHA256SUMS` estão na
+[Release](https://github.com/self-labs/selfdesk/releases/latest).
+
+### 9.2. O que muda em relação ao RustDesk oficial
+
+| Item                         | RustDesk oficial            | SelfDesk                                                     |
+| :--------------------------- | :-------------------------- | :----------------------------------------------------------- |
+| Servidor, Key e API          | colados à mão               | já vêm de fábrica                                            |
+| Comando (Linux)              | `rustdesk`                  | `selfdesk` (e `SelfDesk`)                                    |
+| Serviço systemd              | `rustdesk.service`          | `SelfDesk.service`, com o apelido `selfdesk.service`         |
+| Configuração (Linux, root)   | `/root/.config/rustdesk/RustDesk.toml` | `/root/.config/selfdesk/SelfDesk.toml`            |
+| Senha aceita                 | permanente e temporária     | **só a permanente**                                          |
+| Aprovação da sessão          | senha ou clique             | **só senha**                                                 |
+| Janela de conexão na máquina | sempre visível              | **oculta**                                                   |
+| Permissões                   | o usuário escolhe           | acesso total, travado                                        |
+
+A lista completa do que vem travado está no
+[README do SelfDesk](https://github.com/self-labs/selfdesk#o-que-j%C3%A1-vem-configurado).
+
+> [!WARNING]
+> **Sem senha permanente, o SelfDesk não aceita conexão.** A temporária fica desligada (é uma das três
+> condições para a janela oculta). Defina a senha logo na instalação, antes de fechar o acesso por outro meio.
+
+### 9.3. Instalar numa máquina nova (Linux, via SSH)
+
+```bash
+cd /tmp && curl -fsSLO https://github.com/self-labs/selfdesk/releases/latest/download/selfdesk-x86_64.deb
+sudo apt install -y ./selfdesk-x86_64.deb
+ sudo selfdesk --password 'SENHA_FORTE_DA_MAQUINA'
+selfdesk --get-id
+systemctl status selfdesk
+```
+
+O espaço antes do `sudo selfdesk --password` tira a linha do histórico do bash. No Windows, rode o
+`selfdesk.exe`, clique em **Instalar** e defina a senha em **Configurações → Segurança**.
+
+### 9.4. Trocar o RustDesk pelo SelfDesk mantendo o ID
+
+O ID não depende do programa: fica no arquivo de configuração (`id`/`enc_id`), junto com o par de chaves
+(`key_pair`) e a senha permanente (`password`). O `enc_id` e a `password` são cifrados com o ID da própria
+máquina (`/etc/machine-id`), então o arquivo só vale **na mesma máquina**, e é exatamente o que a migração
+precisa. Copiado o `RustDesk.toml` para o nome do SelfDesk, ele sobe com o mesmo ID, a mesma chave e a mesma
+senha, e o address book do CortenDesk continua valendo.
+
+O servidor aceita a troca: o `hbbs` só recusa um ID que chega com outro `uuid` de máquina, ou com outra chave
+**e** outro IP ao mesmo tempo (`rendezvous_server.rs`, `RegisterPk`). Mesma máquina e mesmo IP passam.
+
+A identidade existe em **dois lugares**, e os dois precisam ser copiados: a do `root` (o `--service`) e a do
+usuário da sessão gráfica, que roda o `--server` e é quem responde o `--get-id`. Esse usuário aparece no
+`systemctl status rustdesk`, na linha `sudo -E ... -u <usuário> ... --server` (`hubb` nos servidores dos
+clientes). Tudo com `sudo`: a pasta de um usuário não é legível por outro.
+
+```bash
+U=hubb   # o usuário da linha "--server" do systemctl status
+
+# 1. Anota o ID, para e desabilita o RustDesk (não remove ainda: se algo der errado, é só religá-lo)
+sudo -u $U rustdesk --get-id
+sudo systemctl disable --now rustdesk
+
+# 2. Instala o SelfDesk (o postinst já o inicia, com um ID e uma chave próprios)
+cd /tmp && curl -fsSLO https://github.com/self-labs/selfdesk/releases/latest/download/selfdesk-x86_64.deb
+sudo apt install -y ./selfdesk-x86_64.deb
+
+# 3. Traz a identidade do RustDesk, com o SelfDesk parado
+sudo systemctl stop SelfDesk
+sudo install -d -m 700 /root/.config/selfdesk
+sudo cp -p /root/.config/rustdesk/RustDesk.toml /root/.config/selfdesk/SelfDesk.toml
+sudo -u $U install -d -m 700 /home/$U/.config/selfdesk
+sudo -u $U cp -p /home/$U/.config/rustdesk/RustDesk.toml /home/$U/.config/selfdesk/SelfDesk.toml
+sudo systemctl start SelfDesk
+
+# 4. Confere, como o usuário da sessão: tem de ser o ID do passo 1
+sleep 8; sudo -u $U selfdesk --get-id
+```
+
+> [!NOTE]
+> **O `--get-id` pergunta o ID ao `--server` em execução** (`ipc::get_id()` no `src/ipc.rs`), não lê o arquivo do
+> root. Copiar só o `/root` e conferir com outro usuário mostra o ID novo e parece que a migração falhou. Com o
+> RustDesk parado, o `rustdesk --get-id` cai no arquivo do usuário, por isso o passo 1 o lê antes de parar.
+> Testado em 19/11/2026 no Orange Pi 5 do homelab (arm64, RustDesk 1.4.9 para SelfDesk 1.5.3): o SelfDesk
+> subiu com o ID antigo.
+
+Só o `RustDesk.toml` é copiado. O `RustDesk2.toml` (opções e servidor) fica para trás de propósito: o
+SelfDesk já traz servidor e opções, e um `RustDesk2.toml` antigo só traria configuração que o build impõe
+diferente.
+
+> [!IMPORTANT]
+> **O que depende do nome `rustdesk` no servidor** precisa ser trocado junto, ou volta o problema da tela
+> errada. No guia do servidor Debian dos clientes são três pontos: o drop-in que espera o `:0`
+> (`/etc/systemd/system/rustdesk.service.d/`), o `After=rustdesk.service` do Chrome Remote Desktop, e o
+> caminho do log usado para conferir o `DISPLAY`. Use o nome real da unit, `SelfDesk.service`, nos drop-ins
+> e no `After=`. O painel de monitoramento que vigia o serviço `rustdesk` também precisa passar a vigiar o
+> `SelfDesk`.
+
+Depois de três reboots com o `DISPLAY: :0` e a conexão pelo SelfDesk funcionando, remova o RustDesk:
+
+```bash
+sudo apt remove -y rustdesk
+```
+
+> [!NOTE]
+> **Nada disso mexe no SSH.** O acesso pelo Cloudflare Tunnel é independente do RustDesk, então, se a migração
+> falhar, `sudo systemctl disable --now SelfDesk && sudo systemctl enable --now rustdesk` volta ao estado
+> anterior. Faça um cliente primeiro e só depois os demais.
+
+> [!WARNING]
+> **Desabilite o RustDesk, não só pare.** Depois da cópia, os dois têm a mesma identidade (ID, chave e senha).
+> Parado mas habilitado, o RustDesk volta no próximo boot junto com o SelfDesk, e os dois disputam o ID e a tela.
+
 ## Troubleshooting
 
 | Sintoma                                                                                                                      | Causa provável                                                                                                    | Correção                                                                                                                            |
@@ -237,6 +364,9 @@ RustDesk Server no Windows Server 2025. Mantenha uma cópia dos arquivos `id_ed2
 | CortenDesk: login retorna `500` e o log diz `attempt to write a readonly database`                                           | `/srv/cortendesk/data` está `root:root`; o `www-data` não consegue criar o journal/WAL do SQLite **no diretório** | `chown -R` para o UID real do `www-data` do container e `chmod 775` na pasta (Parte 6, passo 3), depois `docker restart cortendesk` |
 | Container reinicia em loop                                                                                                   | Key com permissão errada, ou volume vazio                                                                         | `chmod 600 id_ed25519`; confira o bind mount `/srv/rustdesk/data:/root`                                                             |
 | Imagem não sobe no ARM                                                                                                       | tag sem manifesto arm64                                                                                           | A `:latest` do `rustdesk-server` e a do `cortendesk` são multi-arch com arm64 nativo                                                |
+| SelfDesk não aceita conexão nenhuma                                                                                          | máquina sem senha permanente; o SelfDesk desliga a temporária                                                    | `sudo selfdesk --password '...'` pelo SSH (Parte 9.3)                                                                              |
+| SelfDesk subiu com ID novo depois da migração                                                                                | `SelfDesk.toml` copiado com o serviço rodando (ele sobrescreve) ou de outra máquina                              | `sudo systemctl stop SelfDesk`, copie o `RustDesk.toml` de novo e `start` (Parte 9.4)                                              |
+| SelfDesk mostra a tela do Google (`:20`)                                                                                     | drop-ins da ordem de partida ainda apontam para `rustdesk.service`                                                | Recrie os drop-ins com o nome `SelfDesk.service` (Parte 9.4) e confira com três `reboot`                                          |
 
 ## Notas Importantes
 
@@ -255,10 +385,12 @@ RustDesk Server no Windows Server 2025. Mantenha uma cópia dos arquivos `id_ed2
 | Servidor de ID/Relay      | `rustdesk-id.selflabs.org` (portas nativas)         | Key + senha por máquina |
 | Web client (redes livres) | `https://rustdesk.com/web` → seu ID Server          | Key + senha por máquina |
 | Navegador na empresa      | ver [RDP no Navegador](./cloudflare-browser-rdp.md) | Cloudflare Access + MFA |
+| Cliente SelfDesk          | [Releases do SelfDesk](https://github.com/self-labs/selfdesk/releases/latest) | Key + senha permanente por máquina |
 
 ## Referências
 
 - [RustDesk Server OSS (GitHub)](https://github.com/rustdesk/rustdesk-server)
 - [RustDesk Docs: self-host OSS](https://rustdesk.com/docs/en/self-host/rustdesk-server-oss/)
+- [SelfDesk (cliente da Self-Labs)](https://github.com/self-labs/selfdesk) · [rdgen](https://github.com/bryangerlach/rdgen) · [rdgen-cli](https://github.com/AlekseyLapunov/rdgen-cli)
 - [RustDesk Server no Docker Hub](https://hub.docker.com/r/rustdesk/rustdesk-server/tags)
 - [RDP no Navegador (este repo)](./cloudflare-browser-rdp.md) · [RustDesk Headless (este repo)](./rustdesk-headless.md) · [Caddy (este repo)](./caddy.md)
