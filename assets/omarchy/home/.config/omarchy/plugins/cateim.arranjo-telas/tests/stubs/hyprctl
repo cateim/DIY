@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Test stub for hyprctl: logs argv to $STUB_LOG and answers from env vars.
+# eval prints $STUB_EVAL_SAIDA (default "ok") and exits 0 only on "ok",
+# 7 otherwise, like the real hyprctl. The eval argument is also written raw
+# to "$STUB_LOG.eval" so tests can compare it byte for byte. reload exits 1
+# when $STUB_RELOAD_FALHA is 1.
+set -euo pipefail
+printf '%s\n' "hyprctl" "$@" "@@" >> "$STUB_LOG"
+if [[ "${1:-}" == "eval" ]]; then
+  printf '%s' "${2:-}" > "$STUB_LOG.eval"
+  saida="${STUB_EVAL_SAIDA:-ok}"
+  printf '%s\n' "$saida"
+  [[ "$saida" == "ok" ]] || exit 7
+fi
+if [[ "${1:-}" == "reload" && "${STUB_RELOAD_FALHA:-0}" == "1" ]]; then
+  exit 1
+fi
+exit 0

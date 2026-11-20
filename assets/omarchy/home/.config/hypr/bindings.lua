@@ -124,6 +124,11 @@ hl.define_submap(SWITCHER_SUBMAP, function()
   hl.bind("Escape", switcher_close("cancel"), { ignore_mods = true })
 end)
 
+-- Arranjo das telas, adicionado em 20/11/2026: SUPER + ALT + P, como o Win + P do Windows, abre o
+-- painel do plugin ~/.config/omarchy/plugins/cateim.arranjo-telas (arrastar as telas, resolução,
+-- orientação, Manter ou Reverter em 15 s). A tecla estava livre (hyprctl binds -j, 261 binds).
+o.bind("SUPER + ALT + P", "Display arrangement", { panel = "cateim.arranjo-telas" })
+
 -- Dictation keys from before Alt + Space and Right Alt became the defaults.
 -- Remove these lines to give the keys back to applications.
 if o.dictation_installed and o.dictation_installed() then

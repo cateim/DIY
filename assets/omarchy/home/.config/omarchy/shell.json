@@ -113,6 +113,12 @@
   "plugins": [
     {
       "id": "cateim.window-switcher"
+    },
+    {
+      "id": "cateim.arranjo-telas"
+    },
+    {
+      "id": "io.voxtype.settings"
     }
   ],
   "version": 1

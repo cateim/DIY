@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "cateim.arranjo-telas",
+  "name": "Display arrangement",
+  "version": "1.0.0",
+  "author": "cateim",
+  "description": "Position, mode and orientation of external displays, merged over the monitors.lua rules",
+  "kinds": [
+    "overlay"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "ArranjoTelas.qml"
+  }
+}
