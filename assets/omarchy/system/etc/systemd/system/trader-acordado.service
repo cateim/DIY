@@ -1,0 +1,12 @@
+[Unit]
+Description=Mantém o notebook acordado enquanto a stack trader roda
+After=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/trader-acordado
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
