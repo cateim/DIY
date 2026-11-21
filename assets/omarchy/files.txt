@@ -83,11 +83,16 @@
 # ---- REA (engenharia reversa): wrapper do prefixo npm próprio, docs/rea.md Parte 1 ----
 ~/.local/bin/rea
 
+# ---- Notebook acordado com a stack trader no ar (o /usr/local só vai com install.sh --system) ----
+/usr/local/bin/trader-acordado
+
 # ---- Sistema (/etc): install.sh --system, com sudo ----
 /etc/limine-entry-tool.d/alienware-display.conf
+/etc/systemd/logind.conf.d/30-tampa.conf
 /etc/systemd/system/cloudflared.service
 /etc/systemd/system/home-emergencia.service
 /etc/systemd/system/SelfDesk.service.d/sessao.conf
+/etc/systemd/system/trader-acordado.service
 /etc/udev/rules.d/20-hw1.rules
 /etc/udev/rules.d/51-coinkite.rules
 /etc/udev/rules.d/51-trezor.rules

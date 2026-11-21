@@ -1,0 +1,73 @@
+#!/bin/bash
+# trader-acordado: keeps the notebook from sleeping while the trader stack runs.
+#
+# Every POLL_S seconds it asks Docker for the containers of the compose project TRADER_PROJECT
+# (the stack name in Portainer). While one is running or restarting, it holds a logind "sleep"
+# inhibitor in block mode, so suspend and hibernate are refused. With none, it drops it.
+# A Docker error (daemon down, odd answer) keeps whatever state it was in.
+# Only "sleep": the lid switch and idle are left alone, so the lid on battery still suspends and
+# the screen lock still works. To sleep on purpose: sudo systemctl stop trader-acordado.
+# Installed as /usr/local/bin/trader-acordado (root owned) by trader-acordado.service.
+set -uo pipefail
+
+TRADER_PROJECT="${TRADER_PROJECT:-trader}"
+POLL_S="${POLL_S:-30}"
+DOCKER="${DOCKER:-docker}"
+INHIBIT="${INHIBIT:-systemd-inhibit}"
+MAX_LOOPS="${MAX_LOOPS:-}" # empty: forever (tests set a count)
+
+inhibit_pid=""
+sleep_pid=""
+
+hold() {
+  [[ -n $inhibit_pid ]] && kill -0 "$inhibit_pid" 2>/dev/null && return
+  "$INHIBIT" --what=sleep --who=trader-acordado \
+    --why="Stack trader no ar: o vigia precisa do notebook acordado" \
+    --mode=block sleep infinity &
+  inhibit_pid=$!
+  echo "holding"
+}
+
+release() {
+  [[ -n $inhibit_pid ]] || return 0
+  kill "$inhibit_pid" 2>/dev/null
+  wait "$inhibit_pid" 2>/dev/null
+  inhibit_pid=""
+  echo "released"
+}
+
+on_exit() {
+  [[ -n $sleep_pid ]] && kill "$sleep_pid" 2>/dev/null
+  release
+}
+
+trap on_exit EXIT
+trap 'exit 0' TERM INT
+
+check() {
+  local states code
+  states=$("$DOCKER" ps -a --filter "label=com.docker.compose.project=$TRADER_PROJECT" \
+    --format '{{.State}}')
+  code=$?
+  if ((code != 0)); then
+    echo "docker_error exit=$code"
+    return
+  fi
+  if grep -qxE 'running|restarting' <<<"$states"; then
+    hold
+  else
+    release
+  fi
+}
+
+loops=0
+while [[ -z $MAX_LOOPS ]] || ((loops < MAX_LOOPS)); do
+  check
+  loops=$((loops + 1))
+  [[ -n $MAX_LOOPS ]] && ((loops >= MAX_LOOPS)) && break
+  # In the background, so a SIGTERM is handled at once instead of after the sleep.
+  sleep "$POLL_S" &
+  sleep_pid=$!
+  wait "$sleep_pid"
+  sleep_pid=""
+done

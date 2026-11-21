@@ -100,7 +100,7 @@ print_next_steps() {
   echo "  omarchy restart shell        # plugins keepLoaded só trocam de código assim"
   echo "  systemctl --user daemon-reload && systemctl --user enable --now wayvnc.service vnc-sessao.service selfdesk-tela-unica.service"
   if ((WITH_SYSTEM)); then
-    echo "  sudo systemctl daemon-reload && sudo systemctl enable home-emergencia.service"
+    echo "  sudo systemctl daemon-reload && sudo systemctl enable home-emergencia.service trader-acordado.service"
     echo "  sudo udevadm control --reload-rules && sudo udevadm trigger"
     echo "  sudo limine-mkinitcpio       # aplica o alienware-display.conf na linha do kernel"
   fi
