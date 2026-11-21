@@ -6,7 +6,8 @@
   "Web": {
     "${TS_CERT_DOMAIN}:443": {
       "Handlers": {
-        "/": { "Proxy": "http://portainer:9000" }
+        "/": { "Proxy": "http://portainer:9000" },
+        "/trader-watchdog/": { "Proxy": "http://trader-watchdog:8000" }
       }
     }
   }
