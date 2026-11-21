@@ -281,6 +281,12 @@ O espaço antes do `sudo selfdesk --password` tira a linha do histórico do bash
 
 ### 9.4. Trocar o RustDesk pelo SelfDesk mantendo o ID
 
+> [!TIP]
+> **Na prática, um comando faz tudo isto.** O passo a passo de cada sistema está no README do
+> [`self-labs/selfdesk`](https://github.com/self-labs/selfdesk#migrar-e-atualizar-clientes): Debian/Ubuntu e
+> Windows com um script público (`--check`, migrar, testar, `--finalize`, e `--rollback` para voltar), Arch
+> (Omarchy) à mão, porque o pacote conflita com o `rustdesk`. O que vem abaixo explica o que esses passos fazem.
+
 O ID não depende do programa: fica no arquivo de configuração (`id`/`enc_id`), junto com o par de chaves
 (`key_pair`) e a senha permanente (`password`). O `enc_id` e a `password` são cifrados com o ID da própria
 máquina (`/etc/machine-id`), então o arquivo só vale **na mesma máquina**, e é exatamente o que a migração
@@ -362,8 +368,21 @@ pacote não toca.
 
 Depois da Release, cada máquina instala por cima:
 
-- **Debian/Ubuntu (clientes):** `sudo bash ~/migrate-selfdesk.sh --update`, do repositório dos servidores dos
-  clientes. Ele confere o sha256 com o `SHA256SUMS`, instala com `dpkg -i` e confere que o ID continuou o mesmo.
+- **Debian/Ubuntu (clientes):** um comando baixa o script público e atualiza. Ele confere o sha256 com o
+  `SHA256SUMS`, instala com `dpkg -i` e confere que o ID continuou o mesmo. O laço para vários clientes está no
+  README do [`self-labs/selfdesk`](https://github.com/self-labs/selfdesk#migrar-e-atualizar-clientes):
+
+  ```bash
+  ssh -t CLIENTE 'sudo curl -fsSLo /usr/local/sbin/migrate-selfdesk https://raw.githubusercontent.com/self-labs/selfdesk/master/client/migrate-selfdesk.sh && sudo bash /usr/local/sbin/migrate-selfdesk --update'
+  ```
+
+- **Windows:** num PowerShell como Administrador, o script público com `-Update` (reinstala o `.msi` por cima e
+  confere o ID):
+
+  ```powershell
+  [Net.ServicePointManager]::SecurityProtocol='Tls12'; iwr -useb https://raw.githubusercontent.com/self-labs/selfdesk/master/client/migrate-selfdesk.ps1 -OutFile $env:TEMP\migrate-selfdesk.ps1; powershell -NoProfile -ExecutionPolicy Bypass -File $env:TEMP\migrate-selfdesk.ps1 -Update
+  ```
+
 - **Arch:** `sudo pacman -U https://github.com/self-labs/selfdesk/releases/latest/download/selfdesk-x86_64.pkg.tar.zst`.
 - **CortenDesk:** o `/downloads` guarda cópias próprias dos instaladores, então suba os arquivos novos lá também.
 
