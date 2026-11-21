@@ -28,6 +28,8 @@ O node (`selflabs`) faz `serve` HTTPS: a **porta 443** encaminha para o Portaine
 
 Além do HTTPS, a **porta 9001** é um repasse TCP puro (`TCPForward`) para o `portainer_agent:9001`, pela rede `portainer-agent-net`: é por ela que o Portainer do homelab gerencia esta VPS ([Portainer Agent, Parte 6](./portainer-agent.md#parte-6-vps-com-tailscale-em-container-userspace)).
 
+Na mesma **porta 443**, por **caminho** e não por porta, o `/trader-watchdog/` encaminha para o `trader-watchdog:8000`, pela rede `trader-watchdog-net`: é o vigia remoto da stack `trader` (repositório próprio), que roda nesta VPS. O Serve tira o prefixo, então o vigia recebe `/beat` e `/health`; o beat do notebook posta em `https://selflabs.<sua-tailnet>.ts.net/trader-watchdog/beat` com token, e o `/` continua no Portainer. Só o `trader-watchdog` fica nessa rede.
+
 > ℹ️ **Como o container alcança o backend:** pela **rede docker**. O `tailscale` fica na `caddy-net`, e o alvo (ex.: `portainer`) também — então o proxy é só `http://<container>:porta`. Para expor um serviço de outra rede, adicione essa rede à stack `tailscale.yml`.
 
 ## Parte 1: Conta Tailscale + MagicDNS + HTTPS
@@ -56,11 +58,12 @@ Copie o valor (`tskey-auth-...`) → vai na aba **Environment variables** do Por
 ```bash
 sudo mkdir -p /srv/tailscale/{state,config}   # o container roda como root; sem chown
 sudo docker network create --driver bridge portainer-agent-net   # a stack a declara como external
+sudo docker network create --driver bridge trader-watchdog-net   # idem; é a rede do vigia da stack trader
 ```
 
-A `portainer-agent-net` é a rede do agent do Portainer ([Portainer Agent, Parte 6](./portainer-agent.md#parte-6-vps-com-tailscale-em-container-userspace)). Sem ela, o deploy da stack falha; se não for usar o agent, tire a rede do `tailscale.yml`.
+A `portainer-agent-net` é a rede do agent do Portainer ([Portainer Agent, Parte 6](./portainer-agent.md#parte-6-vps-com-tailscale-em-container-userspace)). Sem ela, o deploy da stack falha; se não for usar o agent, tire a rede do `tailscale.yml`. O mesmo vale para a `trader-watchdog-net`, a rede do vigia da stack `trader`: sem ela o deploy falha, e sem o vigia a rede sai do `tailscale.yml`.
 
-Grave o serve config em `/srv/tailscale/config/serve.json` (conteúdo de [`assets/configs/tailscale-serve.json`](../assets/configs/tailscale-serve.json)): Portainer na 443 e o agent do Portainer na 9001:
+Grave o serve config em `/srv/tailscale/config/serve.json` (conteúdo de [`assets/configs/tailscale-serve.json`](../assets/configs/tailscale-serve.json)): Portainer na 443, o vigia da stack `trader` no caminho `/trader-watchdog/` da 443 e o agent do Portainer na 9001:
 
 ```json
 {
@@ -70,7 +73,10 @@ Grave o serve config em `/srv/tailscale/config/serve.json` (conteúdo de [`asset
   },
   "Web": {
     "${TS_CERT_DOMAIN}:443": {
-      "Handlers": { "/": { "Proxy": "http://portainer:9000" } }
+      "Handlers": {
+        "/": { "Proxy": "http://portainer:9000" },
+        "/trader-watchdog/": { "Proxy": "http://trader-watchdog:8000" }
+      }
     }
   }
 }
@@ -179,7 +185,7 @@ O mesmo node serve vários serviços, um por **porta**. Ex.: adicionar um Grafan
 - **Rota privada, não pública:** só devices logados na **sua** tailnet alcançam. `serve` é tailnet-only; **Funnel** (público) fica desligado.
 - **Não expõe porta nova:** o proxy da tailnet não abre nada na internet. Pelo contrário — permite **fechar** exposições públicas existentes (Parte 6).
 - **Userspace:** `TS_USERSPACE=true` (sem `/dev/net/tun`/`NET_ADMIN`) — o `serve` funciona assim e o container fica sem privilégios extras.
-- **Hub por porta:** um node serve vários serviços (Parte 8). Para URLs sem porta, use um node dedicado por serviço.
+- **Hub por porta:** um node serve vários serviços (Parte 8). Para URLs sem porta, use um node dedicado por serviço, ou um caminho na 443 quando o app aceita prefixo (como o `/trader-watchdog/` da Arquitetura).
 
 ## Acessos
 
@@ -187,6 +193,7 @@ O mesmo node serve vários serviços, um por **porta**. Ex.: adicionar um Grafan
 | :------------------- | :------------------------------------------------------------- | :--------------------- |
 | Serviços via tailnet | `https://selflabs.<sua-tailnet>.ts.net[:porta]`                | tailnet (seus devices) |
 | Agent do Portainer   | `100.100.101.83:9001` (TCP, para o Portainer do homelab)       | tailnet (seus devices) |
+| Vigia da stack `trader` | `https://selflabs.<sua-tailnet>.ts.net/trader-watchdog/` (caminho na 443; só o `trader-watchdog` na `trader-watchdog-net`) | tailnet (seus devices); o `/beat` exige o token |
 | Admin da tailnet     | [login.tailscale.com/admin](https://login.tailscale.com/admin) | conta Tailscale        |
 
 ## Referências
