@@ -17,6 +17,7 @@
 # ---- Shell do Omarchy (barra, ociosidade, fonte, agente padrão, plugins) ----
 ~/.config/omarchy/shell.json
 ~/.config/omarchy/shell.toml
+~/.config/omarchy/extensions/omarchy-menu.jsonc
 ~/.config/omarchy/defaults/agent
 ~/.config/omarchy/themed/chromium.theme.tpl
 ~/.config/omarchy/plugins/cateim.window-switcher/
@@ -88,11 +89,13 @@
 
 # ---- Sistema (/etc): install.sh --system, com sudo ----
 /etc/limine-entry-tool.d/alienware-display.conf
+/etc/polkit-1/rules.d/50-suspend-ignore-inhibit.rules
 /etc/systemd/logind.conf.d/30-tampa.conf
 /etc/systemd/system/cloudflared.service
 /etc/systemd/system/home-emergencia.service
 /etc/systemd/system/SelfDesk.service.d/sessao.conf
 /etc/systemd/system/trader-acordado.service
+/etc/tmpfiles.d/50-plymouth.conf
 /etc/udev/rules.d/20-hw1.rules
 /etc/udev/rules.d/51-coinkite.rules
 /etc/udev/rules.d/51-trezor.rules

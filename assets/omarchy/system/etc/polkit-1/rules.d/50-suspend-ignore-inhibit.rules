@@ -1,0 +1,12 @@
+// Lets the active local session of a wheel user suspend past sleep inhibitors
+// without a password. The Omarchy System menu runs
+// `systemctl suspend --ignore-inhibitors` (~/.config/omarchy/extensions/omarchy-menu.jsonc)
+// so a Suspend click wins over the "block" inhibitor that trader-acordado holds
+// while the trader stack runs. Stock logind policy asks for admin auth for this
+// (org.freedesktop.login1.suspend-ignore-inhibit = auth_admin_keep).
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.login1.suspend-ignore-inhibit" &&
+        subject.local && subject.active && subject.isInGroup("wheel")) {
+        return polkit.Result.YES;
+    }
+});

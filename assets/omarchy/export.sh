@@ -68,6 +68,14 @@ copy_entry() {
   local args=(-a)
   for pattern in "${EXCLUDES[@]}"; do args+=(--exclude "$pattern"); done
   if [[ ! -e $src ]]; then
+    # Arquivo solto dentro de diretório só do root (ex.: /etc/polkit-1/rules.d, 0750
+    # root:polkitd): o usuário nem enxerga que existe. Copia o conteúdo com sudo, que
+    # pede a senha no terminal; o espelho continua sendo do usuário.
+    if [[ $src == /* ]] && sudo test -f "$src"; then
+      mkdir -p "$(dirname "$dst")"
+      sudo cat -- "$src" >"$dst" || die "falha ao ler $src com sudo"
+      return 0
+    fi
     echo "aviso: $src não existe, ficou de fora" >&2
     return 0
   fi

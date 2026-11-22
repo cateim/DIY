@@ -19,4 +19,5 @@ nodejs-intelephense           # LSP do plugin php-lsp do Claude Code
 openscad-snapshot-appimage    # modelagem 3D (Bambu A1 e A1 mini)
 sasquatch                     # SquashFS fora do padrão, extrator do Unblob (REA)
 sparrow-wallet
+uefitool-bin                  # A75: uefitool, uefiextract e uefifind (binários oficiais da LongSoft), análise do BIOS (docs/rea.md, Parte 6)
 ventoy-bin

@@ -455,7 +455,7 @@ claude mcp add-json -s user rea '{
 - pwndbg (o REA exige o caminho de um venv do pwndbg). O Cutter entrou em 20/11/2026, mas o `rz-cutter` do Arch não carrega o plugin do REA (bloco abaixo).
 - O que só existe no macOS: `inspect_macho`, plist, Swift, asset catalog, assinatura de código e UI nativa.
 
-**Ferramentas avulsas, instaladas em 20/11/2026.** Servem para olhar o alvo por conta própria, ao lado do REA; só o Cutter tem uma ponte para ele, e o Frida divide com ele o mesmo `frida-server` no Android. Os pacotes estão no espelho ([`packages.txt`](../assets/omarchy/packages.txt), seção de engenharia reversa, e [`packages-aur.txt`](../assets/omarchy/packages-aur.txt)):
+**Ferramentas avulsas, instaladas em 20/11/2026 (msr-tools e UEFITool em 22/11/2026, para analisar o firmware do Alienware 17 R3).** Servem para olhar o alvo por conta própria, ao lado do REA; só o Cutter tem uma ponte para ele, e o Frida divide com ele o mesmo `frida-server` no Android. Os pacotes estão no espelho ([`packages.txt`](../assets/omarchy/packages.txt), seção de engenharia reversa, e [`packages-aur.txt`](../assets/omarchy/packages-aur.txt)):
 
 | Ferramenta                 | Instalar                                                   | Observação                                                                                                                                                         |
 | :------------------------- | :--------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -466,6 +466,8 @@ claude mcp add-json -s user rea '{
 | IDA Free 8.4.240527        | `yay -S ida-free`                                          | Só x86/x64; licença não comercial. O PKGBUILD baixa o instalador oficial guardado no web.archive.org, com sha256 fixo, e o pacote está marcado desatualizado no AUR. O IDA Free 9.x pede login e arquivo de licença da Hex-Rays |
 | Frida 17.23.2              | `uv tool install frida-tools --with 'frida==17.23.2'`      | A mesma versão do Frida que vem dentro do REA 6.8.0, então um único `frida-server` no Android atende os dois. Pelo uv, nunca `pip install` global                   |
 | ILSpy CLI 11.2.0.10050     | `dotnet tool install -g ilspycmd`                          | Decompilador .NET, em `~/.dotnet/tools` (no PATH pelo `~/.config/uwsm/env.d/91-dotnet-tools`, depois de um novo login). O `ilspy-bin` do AUR ficou de fora: depende do `dotnet-runtime-10.0`, que o `dotnet-sdk` e o `dotnet-runtime` instalados não fornecem |
+| msr-tools 1.3              | `sudo pacman -S msr-tools`                                 | `rdmsr` e `wrmsr`; lê o MSR `0x13A`, o estado do Boot Guard. Pede `sudo modprobe msr` antes: o módulo foi carregado à mão e não está no `modules-load.d`, então some no reboot |
+| UEFITool A75               | `yay -S uefitool-bin`                                      | `uefitool` (GUI), `uefiextract` e `uefifind`, binários oficiais da LongSoft: abre, extrai e busca dentro da imagem do BIOS UEFI |
 
 Ghidra 12.1.2, rizin 0.8.2 e gdb 18.1 já estavam instalados. Não dá para instalar aqui: x64dbg e WinDbg (só Windows; no Linux o gdb 18.1 cobre), IDA Pro e o Binary Ninja pago.
 
