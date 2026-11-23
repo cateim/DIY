@@ -254,6 +254,30 @@ O Rust vem do pacote `rustup` da lista, com os toolchains em `~/.rustup`. Não r
 Tudo o que não é arquivo do espelho, na ordem em que faz sentido numa reinstalação.
 
 1. **Tailscale**: `omarchy install service tailscale`, login, depois `sudo tailscale set --hostname=alienware`. No painel do Tailscale, desligue a expiração da chave deste nó.
+
+   Depois que a stack `trader` estiver no ar no Portainer, publique o painel dela (container `trader-panel`, que ouve só em `127.0.0.1:8102`) para a tailnet com o Tailscale Serve. Roda como usuário comum, sem `sudo`, porque o Tailscale deste notebook tem operador:
+
+   ```bash
+   tailscale serve --bg 8102          # https://alienware.<<TAILNET>>.ts.net/ -> http://127.0.0.1:8102
+   tailscale serve status             # tem que mostrar o proxy de / para http://127.0.0.1:8102, "(tailnet only)"
+   tailscale serve --https=443 off    # desfaz
+   ```
+
+   > ⚠️ Nunca use `tailscale funnel` aqui: ele abriria o painel para a internet. O painel é só da tailnet.
+
+   A configuração do Serve fica no estado do `tailscaled` (`/var/lib/tailscale`), junto das chaves do nó. Por isso nada dela entra no `files.txt` nem no `export.sh`: numa reinstalação, rode o comando de novo.
+
+   Para entrar no terminal do notebook pelo celular (Termius no iOS), ligue o Tailscale SSH. Ele atende a porta 22 só na tailnet, sem `sshd` (que segue desligado) e sem `authorized_keys`: quem autentica é a identidade do Tailscale.
+
+   ```bash
+   sudo tailscale set --ssh                   # liga; --ssh=false desliga
+   tailscale debug prefs | grep RunSSH        # tem que mostrar "RunSSH": true
+   ```
+
+   No Termius: Hostname `alienware` (ou o IP do Tailscale), Username `cateim`, senha e chave em branco, com o app do Tailscale conectado no iPhone. Se a policy SSH da tailnet estiver em `"action": "check"`, a primeira conexão mostra um link de login. Essa preferência também fica no estado do `tailscaled`, fora do espelho.
+
+   > ⚠️ No Termius, deixe **Settings → Terminal → Enable Autocomplete** desligado. Ligado, ele digita no shell um script de integração (`_termius_si_*`) logo depois do login, o ble.sh trata as várias linhas como colagem e o bloco fica parado em `MULTILINE` na tela. Testado em 22/11/2026, Termius 8.2.0 no iOS.
+
 2. **Drive**: pela primeira configuração do próprio DriveSync. O repositório dele mora no `~/Drive`, que ainda não voltou, então clone numa pasta temporária, como o DIY. O build só tem o client OAuth do DriveSync com o `src/oauthclient.local.h`, que fica fora do git: crie a partir do `oauthclient.local.h.example` antes de instalar, com o ID e o secret do client que estão no Bitwarden.
 
    ```bash
@@ -292,19 +316,27 @@ Tudo o que não é arquivo do espelho, na ordem em que faz sentido numa reinstal
     ```
 
 11. **Apps**: os PWAs do Chrome voltam pelo sync da conta Google; o SideSwap é um AppImage baixado em `~/Applications/SideSwap.AppImage`.
-12. **Agente SSH** (a senha de uma chave é pedida uma vez por login, não a cada `ssh`): ligue o agente do pacote `openssh` e ponha o bloco abaixo no fim do `~/.ssh/config`. O `IdentityAgent` faz o agente valer também para quem não herdou o `SSH_AUTH_SOCK`, como o Antigravity e o Claude Code. O `~/.ssh/config` fica fora do espelho, porque lista os servidores dos clientes.
+12. **Agente SSH** (a chave com senha, a `hubb_ed25519` dos servidores dos clientes, não pede a senha nem depois de reiniciar): o agente é o `gcr-ssh-agent`, que lê a senha da chave no chaveiro do GNOME e carrega a chave sozinho. Ponha o bloco abaixo no fim do `~/.ssh/config`. O `IdentityAgent` faz o agente valer também para quem não herdou o `SSH_AUTH_SOCK`, como o Antigravity e o Claude Code. O `~/.ssh/config` fica fora do espelho, porque lista os servidores dos clientes.
 
     ```bash
-    systemctl --user enable --now ssh-agent.socket
+    systemctl --user enable --now gcr-ssh-agent.socket
     ```
 
     ```text
     Host *
         AddKeysToAgent yes
-        IdentityAgent ${XDG_RUNTIME_DIR}/ssh-agent.socket
+        IdentityAgent ${XDG_RUNTIME_DIR}/gcr/ssh
     ```
 
-    O primeiro `ssh` depois do login pede a senha e deixa a chave no agente até reiniciar ou sair da sessão. Para ver o que está carregado: `SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/ssh-agent.socket ssh-add -l`.
+    Guarde a senha da chave no chaveiro uma vez (o `secret-tool` pede a senha sem mostrar na tela). O atributo `unique` tem que ser `ssh-store:` mais o caminho completo da chave privada, que é o que o `gcr-ssh-agent` procura:
+
+    ```bash
+    secret-tool store --label="Unlock password for: <<HOME>>/.ssh/hubb_ed25519" unique "ssh-store:<<HOME>>/.ssh/hubb_ed25519"
+    ```
+
+    Para conferir sem terminal: `ssh -o BatchMode=yes <servidor> true` tem que sair com código 0. Para ver o que está carregado: `SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/gcr/ssh ssh-add -l`.
+
+    > ⚠️ O `Default_keyring` do Omarchy não tem senha (o SDDM entra sozinho) e fica em texto puro em `~/.local/share/keyrings/`: a senha da chave fica protegida só pelo LUKS do `/home`. Com o `gcr` o agente oferece todas as chaves de `~/.ssh`, então um host sem `IdentitiesOnly yes` pode levar "Too many authentication failures" antes da chave certa: ponha `IdentityFile` e `IdentitiesOnly yes` em cada host.
 
 13. **Ícones das pastas** (depois do `~/Drive`, passo 2): a cópia de `~/.local/share/icons/pastas/` fica no Google Drive, em `~/Drive/Omarchy/icones-pastas/`, e volta junto com o `~/Drive`. Copie de volta e rode:
 
@@ -387,6 +419,8 @@ Filtro do drive-sync mudado no DriveSync: copie o `~/.config/drive-sync/filters.
 | SelfDesk                    | Servidor próprio ([`rustdesk-server.md`](./rustdesk-server.md))              |
 | Desbloqueio do LUKS no boot | `ssh root@<BOOT_IP>`, só pelo cabo                                           |
 | Portainer Agent             | Porta 9001, só pelo Tailscale ([`portainer-agent.md`](./portainer-agent.md)) |
+| Painel do trader            | `https://alienware.<<TAILNET>>.ts.net/` (só pela tailnet, Tailscale Serve)   |
+| SSH pelo celular            | `ssh cateim@alienware`, só pela tailnet (Tailscale SSH, sem `sshd`)          |
 
 ---
 
