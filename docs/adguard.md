@@ -113,7 +113,7 @@ Abra no navegador: `http://IP_DA_ORANGEPI:3004`
 ### 3.2. Configurar no Wizard
 
 - **Admin Web Interface:** Porta `80`, escutar em `0.0.0.0`
-  > O Docker mapeia isso para `8084` no host — não precisa se preocupar com essa diferença.
+  > O Docker mapeia isso para `8084` no host - não precisa se preocupar com essa diferença.
 - **DNS Server:** Porta `53`, escutar em `0.0.0.0`
 - Criar usuário e senha admin
 
@@ -247,7 +247,7 @@ Os dispositivos passam a usar o AdGuard ao renovarem o DHCP (pode forçar descon
 
 Para usar o AdGuard fora de casa, configure o DoH nos dispositivos conforme abaixo.
 
-### 🍎 7.1. iOS — Perfil .mobileconfig
+### 🍎 7.1. iOS - Perfil .mobileconfig
 
 Para o iPhone usar DoH em **qualquer rede** (local, 4G, Wi-Fi externo):
 
@@ -260,7 +260,7 @@ Nossa arquitetura terceiriza o TLS para a Cloudflare. Por causa disso, a interfa
 
 > **Nota sobre redes locais:** O perfil tem uma regra (`OnDemandRules`, `DNSServerAddressMatch`): quando os DNS da rede são só o AdGuard de casa e o AdGuard DNS público da Parte 6 (os dois filtram), o iPhone deixa o DoH e usa o DNS da rede, que já é filtrado. Em qualquer outra rede (4G, Wi-Fi de fora, ou a de casa com outro DNS junto) o DoH continua. Até 20/11/2026 o perfil não tinha essa regra e usava o DoH também em casa; com todos os aparelhos saindo pelo mesmo IP, isso estourava o limite da Parte 8.3. O IP do AdGuard não fica no repositório: o deploy lê a variável `ADGUARD_LAN_IP` (GitHub > **Settings** > **Secrets and variables** > **Actions** > aba **Variables**, no environment `github-pages` ou como variável do repositório) e para com erro se ela faltar. Mudar o perfil só chega ao iPhone quando ele é **instalado de novo** pela página.
 
-> **Nota sobre assinatura:** O perfil é assinado automaticamente pelo GitHub Actions com um certificado self-signed na hora do deploy. O iOS vai exibir "Assinado por Self-Labs DNS Profile" (emissor não verificado pela Apple — esperado para certificados self-signed). Para regenerar o certificado de assinatura, veja a seção [Gerando o Certificado de Assinatura](#gerando-o-certificado-de-assinatura).
+> **Nota sobre assinatura:** O perfil é assinado automaticamente pelo GitHub Actions com um certificado self-signed na hora do deploy. O iOS vai exibir "Assinado por Self-Labs DNS Profile" (emissor não verificado pela Apple - esperado para certificados self-signed). Para regenerar o certificado de assinatura, veja a seção [Gerando o Certificado de Assinatura](#gerando-o-certificado-de-assinatura).
 
 ---
 
@@ -284,7 +284,7 @@ Acesse o repositório → **Settings** → **Secrets and variables** → **Actio
 | `SIGN_KEY` | conteúdo do arquivo `sign.key` |
 | `SIGN_CRT` | conteúdo do arquivo `sign.crt` |
 
-**3. Apagar os arquivos locais** — nunca commite a chave privada:
+**3. Apagar os arquivos locais** - nunca commite a chave privada:
 
 ```bash
 rm sign.key sign.crt
@@ -294,11 +294,11 @@ Após adicionar os secrets, qualquer disparo do workflow irá assinar o perfil a
 
 ---
 
-### 🤖 7.2. Android — DoH via App
+### 🤖 7.2. Android - DoH via App
 
 O Android nativo usa DNS-over-TLS (porta 853), que não está mapeada no nosso setup. A alternativa é usar um app que suporte DoH com servidor customizado.
 
-**Opção A — App AdGuard para Android (recomendado)**
+**Opção A - App AdGuard para Android (recomendado)**
 
 1. Instalar o **AdGuard** da Play Store (versão gratuita ou paga)
 2. Ir em **Configurações** > **DNS** > **Servidor DNS**
@@ -308,7 +308,7 @@ O Android nativo usa DNS-over-TLS (porta 853), que não está mapeada no nosso s
    - **URL DoH:** `https://adguard.exemplo.com/dns-query`
 5. Ativar o servidor criado
 
-**Opção B — App Intra (Google/Jigsaw, gratuito e leve)**
+**Opção B - App Intra (Google/Jigsaw, gratuito e leve)**
 
 1. Instalar o **Intra** da Play Store
 2. Abrir o app e ir em **Configurações** > **Servidor DNS-over-HTTPS**
@@ -396,13 +396,13 @@ O `/dns-query` é público, então a zona limita quantas consultas um mesmo ende
 ### No Servidor (Debian)
 
 ```bash
-# 1. Testar DNS plain — deve retornar o IP de google.com
+# 1. Testar DNS plain - deve retornar o IP de google.com
 dig @IP_DA_ORANGEPI google.com
 
-# 2. Testar DoH local — deve retornar "Bad Request" (confirma que o endpoint está ativo)
+# 2. Testar DoH local - deve retornar "Bad Request" (confirma que o endpoint está ativo)
 curl -s "http://localhost:8084/dns-query"
 
-# 3. Testar DoH externo (após configurar o tunnel) — deve retornar "Bad Request"
+# 3. Testar DoH externo (após configurar o tunnel) - deve retornar "Bad Request"
 curl -s "https://adguard.exemplo.com/dns-query"
 ```
 
@@ -491,13 +491,26 @@ Log exibe na inicialização:
 permcheck: warning: found unexpected permissions path=/opt/adguardhome/work perm=0755 want=0700
 ```
 
-**Fix** — Rodar no Debian:
+**Fix** - Rodar no Debian:
 
 ```bash
 chmod 700 /srv/adguard/work
 ```
 
 Reiniciar o container após o comando. O aviso desaparece nos logs seguintes.
+
+### ⚠️ Troubleshooting: Nome `.ts.net` da Tailscale não abre com o perfil DoH
+
+Com o perfil DoH instalado, o navegador do iPhone mostra `ERR_NAME_NOT_RESOLVED` para um endereço `<máquina>.<tailnet>.ts.net`, mesmo com a Tailscale conectada e "Use Tailscale DNS" ligado. Trocar o DNS do iPhone para automático faz abrir.
+
+**Causa:** o perfil DoH manda todo o DNS do iPhone para o AdGuard e passa por cima do DNS da Tailscale. O AdGuard não conhece os nomes da tailnet.
+
+**Correção:** no painel do AdGuard, **Filtros > Reescritas de DNS**, uma reescrita por endereço da máquina, com o nome completo:
+
+- `<máquina>.<tailnet>.ts.net` → o IP `100.x.y.z` da máquina (`tailscale ip -4` nela);
+- `<máquina>.<tailnet>.ts.net` → o IPv6 `fd7a:...` da máquina (`tailscale ip -6`), para a consulta AAAA também responder.
+
+Esses IPs só funcionam dentro da tailnet: um aparelho fora dela recebe o endereço e não alcança nada. Confira com `nslookup <máquina>.<tailnet>.ts.net <IP do AdGuard>`.
 
 ### ⚠️ Troubleshooting: Upstream DNS falhando (Quad9)
 
@@ -510,7 +523,7 @@ err="connection reset by peer" / "unexpected EOF"
 
 O container não consegue alcançar o Quad9 via DoH. Isso causa resolução DNS instável com retries.
 
-**Fix** — No painel AdGuard, **Configurações > Configurações de DNS > Servidores DNS primário**, substituir por:
+**Fix** - No painel AdGuard, **Configurações > Configurações de DNS > Servidores DNS primário**, substituir por:
 
 ```
 https://cloudflare-dns.com/dns-query

@@ -34,9 +34,9 @@
                 </dict>
             </array>
             <key>PayloadDescription</key>
-            <string>Configura DNS-over-HTTPS via AdGuard Home — Self-Labs</string>
+            <string>Configura DNS-over-HTTPS via AdGuard Home - Self-Labs</string>
             <key>PayloadDisplayName</key>
-            <string>AdGuard Home — Self-Labs</string>
+            <string>AdGuard Home - Self-Labs</string>
             <key>PayloadIdentifier</key>
             <string>org.selflabs.adguard.doh</string>
             <key>PayloadType</key>
@@ -50,7 +50,7 @@
     <key>PayloadDescription</key>
     <string>Instala o perfil de DNS-over-HTTPS usando o AdGuard Home do Self-Labs. Todas as consultas DNS serão filtradas e protegidas.</string>
     <key>PayloadDisplayName</key>
-    <string>AdGuard Home DoH — Self-Labs</string>
+    <string>AdGuard Home DoH - Self-Labs</string>
     <key>PayloadIdentifier</key>
     <string>org.selflabs.adguard.profile</string>
     <key>PayloadRemovalDisallowed</key>
