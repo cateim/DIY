@@ -12,7 +12,10 @@ blesh-git                     # sugestões e cores no bash (carregado no ~/.bash
 chrome-remote-desktop
 csharp-ls                     # LSP do plugin csharp-lsp do Claude Code; compila com o dotnet-sdk da packages.txt
 hunspell-pt-br                # corretor em português
-ida-free                      # 8.4.240527, só x86/x64; licença não comercial, não pluga no REA (docs/rea.md, Parte 6)
+# ida-free: travado na 8.4.240527-2 (IgnorePkg = ida-free em /etc/pacman.conf, mantido pelo hook pre-refresh-pacman.d/ignore-ida-free).
+# Desde 23/11/2026 o AUR subiu para a 9.5.0-1 com source local:// (exige login/licença em my.hex-rays.com e quebra o yay).
+# Para instalar a 8.4.240527-2 do zero (docs/rea.md, Parte 6):
+#   git clone https://aur.archlinux.org/ida-free.git /tmp/ida-free && git -C /tmp/ida-free checkout bcb8ad6 && (cd /tmp/ida-free && makepkg -sirc)
 jdtls                         # LSP do plugin jdtls-lsp; a 1.63 pede Java 25 (wrapper /usr/local/bin/jdtls)
 lziprecover                   # extrator do Unblob (REA); pede gpg --recv-keys 1E5AEE0B18C0DEB45D64AA0325B62C9821501AA0
 nodejs-intelephense           # LSP do plugin php-lsp do Claude Code

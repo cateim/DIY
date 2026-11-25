@@ -22,6 +22,7 @@
 ~/.config/omarchy/themed/chromium.theme.tpl
 ~/.config/omarchy/plugins/cateim.window-switcher/
 ~/.config/omarchy/plugins/cateim.arranjo-telas/
+~/.config/omarchy/hooks/pre-refresh-pacman.d/ignore-ida-free
 
 # ---- Vigia das atualizações do Omarchy (avisa quando muda o que as personalizações usam) ----
 ~/.local/bin/vigia-omarchy

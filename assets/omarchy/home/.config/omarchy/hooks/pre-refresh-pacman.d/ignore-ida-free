@@ -1,0 +1,18 @@
+#!/bin/bash
+# Mantém ida-free em IgnorePkg no /etc/pacman.conf depois de um `omarchy refresh pacman`
+# ou troca de canal. A 8.4.240527-2 é a última versão gratuita sem login/licença da
+# Hex-Rays; desde a 9.5.0-1 o PKGBUILD do AUR usa source local:// incompatível com o yay.
+set -euo pipefail
+
+CONF=/etc/pacman.conf
+
+if pacman-conf --config "$CONF" IgnorePkg | grep -qxF 'ida-free'; then
+  exit 0
+fi
+
+if ! grep -q '^\[options\][[:space:]]*$' "$CONF"; then
+  echo "ignore-ida-free: seção [options] não encontrada em $CONF" >&2
+  exit 1
+fi
+
+sudo sed -i '0,/^\[options\][[:space:]]*$/s||&\nIgnorePkg = ida-free|' "$CONF"
