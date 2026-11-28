@@ -104,7 +104,7 @@ máquina (alienware)                    servidor (orangepi5)
 
 ## Parte 5: Atualizar o agent
 
-A tag do agent acompanha a do servidor. O homelab usa `portainer-ee:latest`, então, quando ele atualiza, o agent fica para trás. O Portainer não atualiza um agent comum, e o agent não consegue se recriar pelo próprio Portainer, porque a conexão cai no meio. É passo manual, na máquina, pelo procedimento oficial:
+A tag do agent acompanha a do servidor. Desde 28/11/2026 o homelab usa a tag fixa `portainer-ee:2.45.4` (antes `latest`): o watchtower do Orange Pi atualiza todos os containers às 03:00 e, com `latest`, o servidor podia pular sozinho para a 3.x, que exige agent na mesma versão. Por isso servidor e agents sobem juntos, de propósito, com backup do `/srv/portainer` antes (a migração do banco não volta). O Portainer não atualiza um agent comum, e o agent não consegue se recriar pelo próprio Portainer, porque a conexão cai no meio. É passo manual, na máquina, pelo procedimento oficial:
 
 ```bash
 sudo docker stop portainer_agent
